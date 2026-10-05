@@ -81,7 +81,7 @@ main { display: grid; gap: 20px; }
 
 .days { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .days th { font-size: 0.75rem; color: var(--muted); font-weight: 600; padding: 4px 0; }
-.days th[scope='row'] { text-align: left; width: 76px; color: var(--text); }
+.days th[scope='row'] { text-align: left; width: 88px; color: var(--text); }
 .days th.is-today { color: var(--brand); }
 .days abbr { text-decoration: none; }
 .days td { text-align: center; padding: 4px 0; }
@@ -161,3 +161,23 @@ main { display: grid; gap: 20px; }
 .footer { text-align: center; color: var(--muted); font-size: 0.82rem; }
 
 .pdf-link { display: block; text-align: center; text-decoration: none; color: var(--text); }
+
+/* Inline daily flow */
+.step { display: grid; gap: 12px; }
+.step__head { display: flex; align-items: center; gap: 12px; }
+.step__num { width: 32px; height: 32px; border-radius: 50%; background: var(--kind, var(--brand)); color: var(--surface); font-weight: 800; display: grid; place-items: center; flex: none; }
+.step__title { flex: 1; min-width: 0; }
+.step__title h2 { font-size: 1.1rem; }
+.btn--toggle { background: var(--surface); border-color: var(--border); padding: 8px 14px; font-size: 0.85rem; flex: none; }
+.btn--toggle-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.exercise__how--flush { padding-left: 0; }
+
+.selector { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.selector__item { flex: none; border: 1px solid var(--border); border-bottom: 4px solid var(--kind); background: var(--surface); border-radius: 12px; padding: 8px 12px; font-weight: 600; font-size: 0.85rem; white-space: nowrap; }
+.selector__item--active { background: var(--kind); border-color: var(--kind); color: var(--surface); }
+.workout-head { background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--kind); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 2px; }
+.workout-head h3 { font-size: 1.25rem; margin: 0; }
+.timer-card .link-btn { justify-self: center; }
+
+.timer__clock--manual { font-size: clamp(2rem, 9vw, 2.75rem); line-height: 1.15; padding: 10px 0; }
+.timer__controls .btn { white-space: nowrap; padding-inline: 14px; }

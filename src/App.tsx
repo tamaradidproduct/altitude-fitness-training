@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { program, WEEKLY_GOALS, type Session } from './data/program'
 import {
   dailyCount,
@@ -15,7 +15,9 @@ import {
   type DailyPart,
   type Progress,
 } from './lib/progress'
-import { SessionView } from './components/SessionView'
+import { GuidedTimer } from './components/GuidedTimer'
+import { RoutineSection } from './components/RoutineSection'
+import { WorkoutSection } from './components/WorkoutSection'
 
 const pdfUrl = (week: number) => `${import.meta.env.BASE_URL}pdf/week-${week}.pdf`
 
@@ -29,45 +31,46 @@ const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress)
   const [weekNumber] = useState(1)
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const [timerOpen, setTimerOpen] = useState(false)
 
   useEffect(() => {
     saveProgress(progress)
   }, [progress])
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [activeId])
 
   const week = program.weeks.find((w) => w.number === weekNumber)!
   const [now] = useState(() => new Date())
   const today = isoDate(now)
   const dates = weekDates(now).map(isoDate)
-  const daily = [week.core, week.stretch]
-  const all = [...week.workouts, ...daily]
-  const active = all.find((s) => s.id === activeId)
 
-  const isDaily = (s: Session) => s.kind === 'core' || s.kind === 'stretch'
-  const completedOn = (s: Session) =>
-    isDaily(s)
-      ? progress.daily[today]?.[s.kind as 'core' | 'stretch']
-        ? today
-        : undefined
-      : progress.completed[sessionKey(week.number, s.id)]
+  const keyOf = (id: string) => sessionKey(week.number, id)
+  const completedOn = (id: string) => progress.completed[keyOf(id)]
 
-  const handleComplete = (s: Session, done: boolean) => {
-    if (isDaily(s)) {
-      const part = s.kind as 'core' | 'stretch'
-      if (Boolean(progress.daily[today]?.[part]) !== done) setProgress((p) => toggleDaily(p, today, part))
-    } else {
-      setProgress((p) => {
-        const next = setCompleted(p, sessionKey(week.number, s.id), done ? today : null)
-        return done ? markDaily(next, today, 'workout') : next
-      })
-    }
-  }
+  // Default to the first workout not yet done this week.
+  const [selectedId, setSelectedId] = useState(
+    () => (week.workouts.find((w) => !loadProgress().completed[sessionKey(week.number, w.id)]) ?? week.workouts[0]).id,
+  )
+  const selected = week.workouts.find((w) => w.id === selectedId) ?? week.workouts[0]
+  const { core, stretch } = week
+  const flow = useMemo<Session[]>(() => [core, selected, stretch], [core, selected, stretch])
+
+  const dailyDone = (part: DailyPart) => Boolean(progress.daily[today]?.[part])
+
+  const setWorkoutDone = (id: string, done: boolean) =>
+    setProgress((p) => {
+      const next = setCompleted(p, keyOf(id), done ? today : null)
+      return done ? markDaily(next, today, 'workout') : next
+    })
+
+  const finishFlow = () =>
+    setProgress((p) => {
+      let next = markDaily(p, today, 'core')
+      next = setCompleted(next, keyOf(selected.id), today)
+      next = markDaily(next, today, 'workout')
+      return markDaily(next, today, 'stretch')
+    })
 
   const countDone = (kind: Session['kind']) =>
-    week.workouts.filter((w) => w.kind === kind && progress.completed[sessionKey(week.number, w.id)]).length
+    week.workouts.filter((w) => w.kind === kind && completedOn(w.id)).length
 
   const stats = [
     { label: 'Strength', value: countDone('strength'), goal: WEEKLY_GOALS.strength },
@@ -91,148 +94,131 @@ export default function App() {
       </header>
 
       <main>
-        {active ? (
-          <SessionView
-            key={active.id}
-            session={active}
-            checks={progress.checks[sessionKey(week.number, active.id)] ?? []}
-            completedOn={completedOn(active)}
-            onToggleSet={(set) => setProgress((p) => toggleSet(p, sessionKey(week.number, active.id), set))}
-            onComplete={(done) => handleComplete(active, done)}
-            onBack={() => setActiveId(null)}
-          />
-        ) : (
-          <>
-            <section aria-label="Weekly progress" className="stats">
-              {stats.map((s) => (
-                <div key={s.label} className={`stat ${s.value >= s.goal ? 'stat--met' : ''}`}>
-                  <span className="stat__value">
-                    {s.value}
-                    <small>/{s.goal}</small>
-                  </span>
-                  <span className="stat__label">{s.label}</span>
-                  <span className="stat__bar" aria-hidden>
-                    <span style={{ width: `${Math.min(100, (s.value / s.goal) * 100)}%` }} />
-                  </span>
-                </div>
-              ))}
-            </section>
+        <section aria-label="Weekly progress" className="stats">
+          {stats.map((s) => (
+            <div key={s.label} className={`stat ${s.value >= s.goal ? 'stat--met' : ''}`}>
+              <span className="stat__value">
+                {s.value}
+                <small>/{s.goal}</small>
+              </span>
+              <span className="stat__label">{s.label}</span>
+              <span className="stat__bar" aria-hidden>
+                <span style={{ width: `${Math.min(100, (s.value / s.goal) * 100)}%` }} />
+              </span>
+            </div>
+          ))}
+        </section>
 
-            <section className="card">
-              <div className="card__head">
-                <h2>Daily routine</h2>
-                <p className="muted">Core + stretch 5–7 days; strength or cardio on workout days</p>
-              </div>
-              <table className="days">
-                <thead>
-                  <tr>
-                    <th scope="col">
-                      <span className="sr-only">Routine</span>
-                    </th>
-                    {dates.map((d, i) => (
-                      <th key={d} scope="col" className={d === today ? 'is-today' : ''}>
-                        <abbr title={new Date(d + 'T00:00').toLocaleDateString(undefined, { weekday: 'long' })}>
-                          {DAY_LABELS[i]}
-                        </abbr>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {DAILY_ROWS.map(({ part, label }) => (
-                    <tr key={part}>
-                      <th scope="row">{label}</th>
-                      {dates.map((d) => {
-                        const on = Boolean(progress.daily[d]?.[part])
-                        return (
-                          <td key={d}>
-                            <button
-                              type="button"
-                              className={`dot ${on ? 'dot--on' : ''} ${d === today ? 'dot--today' : ''}`}
-                              aria-pressed={on}
-                              aria-label={`${label} on ${d}`}
-                              onClick={() => setProgress((p) => toggleDaily(p, d, part))}
-                            >
-                              {on ? '✓' : ''}
-                            </button>
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="daily-links">
-                {daily.map((s) => (
-                  <button key={s.id} type="button" className="btn btn--ghost" onClick={() => setActiveId(s.id)}>
-                    {s.title} routine ▸
-                  </button>
+        <section className="card">
+          <div className="card__head">
+            <h2>Daily routine</h2>
+            <p className="muted">Core + stretch 5–7 days; strength or cardio on workout days</p>
+          </div>
+          <table className="days">
+            <thead>
+              <tr>
+                <th scope="col">
+                  <span className="sr-only">Routine</span>
+                </th>
+                {dates.map((d, i) => (
+                  <th key={d} scope="col" className={d === today ? 'is-today' : ''}>
+                    <abbr title={new Date(d + 'T00:00').toLocaleDateString(undefined, { weekday: 'long' })}>
+                      {DAY_LABELS[i]}
+                    </abbr>
+                  </th>
                 ))}
-              </div>
-            </section>
+              </tr>
+            </thead>
+            <tbody>
+              {DAILY_ROWS.map(({ part, label }) => (
+                <tr key={part}>
+                  <th scope="row">{label}</th>
+                  {dates.map((d) => {
+                    const on = Boolean(progress.daily[d]?.[part])
+                    return (
+                      <td key={d}>
+                        <button
+                          type="button"
+                          className={`dot ${on ? 'dot--on' : ''} ${d === today ? 'dot--today' : ''}`}
+                          aria-pressed={on}
+                          aria-label={`${label} on ${d}`}
+                          onClick={() => setProgress((p) => toggleDaily(p, d, part))}
+                        >
+                          {on ? '✓' : ''}
+                        </button>
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
 
-            <section aria-label="Workouts">
-              <h2 className="section-title">This week's workouts</h2>
-              <ul className="workouts">
-                {week.workouts.map((w) => {
-                  const done = completedOn(w)
-                  const checked = progress.checks[sessionKey(week.number, w.id)]?.length ?? 0
-                  const total = w.rounds * w.exercises.length
-                  return (
-                    <li key={w.id}>
-                      <button
-                        type="button"
-                        className={`workout kind--${w.kind} ${done ? 'workout--done' : ''}`}
-                        onClick={() => setActiveId(w.id)}
-                      >
-                        <span className="workout__badge" aria-hidden>
-                          {done ? '✓' : w.kind === 'strength' ? '💪' : '❤️'}
-                        </span>
-                        <span className="workout__text">
-                          <span className="eyebrow">
-                            {w.title} · {w.durationLabel}
-                          </span>
-                          <span className="workout__name">{w.nickname}</span>
-                          <span className="muted">
-                            {done
-                              ? `Completed ${new Date(done + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`
-                              : checked > 0
-                                ? `${checked}/${total} sets checked`
-                                : w.equipment
-                                  ? w.equipment.join(', ')
-                                  : `${w.interval?.work}s on / ${w.interval?.rest}s off`}
-                          </span>
-                        </span>
-                        <span aria-hidden className="chev">
-                          ›
-                        </span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-
-            <a className="btn btn--ghost btn--block pdf-link" href={pdfUrl(week.number)} target="_blank" rel="noreferrer">
-              📄 View original Week {week.number} PDF
-            </a>
-
-            <p className="footer">
-              Each day: Core (5 min) → Strength or Cardio (15–20 min) → Stretch (5 min) ≈ 30 min.
-              <br />
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => {
-                  if (window.confirm(`Reset all Week ${week.number} progress?`))
-                    setProgress((p) => resetWeek(p, week.number, dates))
-                }}
-              >
-                Reset week
-              </button>
+        <section className="card timer-card" aria-label="Guided session">
+          <div className="card__head">
+            <h2>Today's session</h2>
+            <p className="muted">
+              Core → {selected.nickname} → Stretch + Mobility · about 30 min
             </p>
-          </>
-        )}
+          </div>
+          {timerOpen ? (
+            <>
+              <GuidedTimer key={selected.id} sessions={flow} onFinish={finishFlow} />
+              <button type="button" className="link-btn" onClick={() => setTimerOpen(false)}>
+                Close timer
+              </button>
+            </>
+          ) : (
+            <button type="button" className="btn btn--primary btn--block" onClick={() => setTimerOpen(true)}>
+              ▶ Start guided session
+            </button>
+          )}
+        </section>
+
+        <RoutineSection
+          step={1}
+          session={week.core}
+          done={dailyDone('core')}
+          onToggleDone={() => setProgress((p) => toggleDaily(p, today, 'core'))}
+        />
+
+        <WorkoutSection
+          step={2}
+          workouts={week.workouts}
+          selectedId={selected.id}
+          onSelect={setSelectedId}
+          checksFor={(id) => progress.checks[keyOf(id)] ?? []}
+          completedOn={completedOn}
+          onToggleSet={(id, set) => setProgress((p) => toggleSet(p, keyOf(id), set))}
+          onComplete={setWorkoutDone}
+        />
+
+        <RoutineSection
+          step={3}
+          session={week.stretch}
+          done={dailyDone('stretch')}
+          onToggleDone={() => setProgress((p) => toggleDaily(p, today, 'stretch'))}
+        />
+
+        <a className="btn btn--ghost btn--block pdf-link" href={pdfUrl(week.number)} target="_blank" rel="noreferrer">
+          📄 View original Week {week.number} PDF
+        </a>
+
+        <p className="footer">
+          Each day: Core (5 min) → Strength or Cardio (15–20 min) → Stretch (5 min) ≈ 30 min.
+          <br />
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => {
+              if (window.confirm(`Reset all Week ${week.number} progress?`))
+                setProgress((p) => resetWeek(p, week.number, dates))
+            }}
+          >
+            Reset week
+          </button>
+        </p>
       </main>
     </div>
   )
