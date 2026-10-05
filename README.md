@@ -19,6 +19,8 @@ Tracker for the Altitude Attitude + ACECoLab pre-season program (Week 1: Base).
 ## Adding weeks
 Add a `Week` object to `src/data/program.ts`, append it to `program.weeks`, and drop the PDF in `public/pdf/week-N.pdf`.
 
-## Deployment
-Pushes to `main` (and the current working branch) deploy to GitHub Pages via `.github/workflows/deploy.yml`:
-https://tamaradidproduct.github.io/altitude-fitness-training/
+## Workflow
+- Work on a feature branch and open a pull request into `main`.
+- Every PR runs lint, tests, and the build (`.github/workflows/deploy.yml`).
+- Merging to `main` deploys to GitHub Pages:
+  https://tamaradidproduct.github.io/altitude-fitness-training/
