@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Relative paths so the build works under the GitHub Pages /<repo>/ subpath.
+  base: './',
   plugins: [react()],
   test: {
     environment: 'jsdom',
