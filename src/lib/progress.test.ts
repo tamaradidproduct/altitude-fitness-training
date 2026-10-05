@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emptyProgress, isoDate, resetWeek, setCompleted, toggleDaily, toggleSet, weekDates } from './progress'
+import { emptyProgress, isoDate, markDaily, resetWeek, setCompleted, toggleDaily, toggleSet, weekDates } from './progress'
 
 describe('progress helpers', () => {
   it('toggles sets on and off', () => {
@@ -19,6 +19,12 @@ describe('progress helpers', () => {
   it('toggles daily core/stretch independently', () => {
     const p = toggleDaily(emptyProgress(), '2026-10-05', 'core')
     expect(p.daily['2026-10-05']).toEqual({ core: true })
+  })
+
+  it('tracks the daily workout and never un-marks via markDaily', () => {
+    let p = markDaily(emptyProgress(), '2026-10-05', 'workout')
+    p = markDaily(p, '2026-10-05', 'workout')
+    expect(p.daily['2026-10-05']).toEqual({ workout: true })
   })
 
   it('reset only clears the given week', () => {

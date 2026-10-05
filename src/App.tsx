@@ -4,6 +4,7 @@ import {
   dailyCount,
   isoDate,
   loadProgress,
+  markDaily,
   resetWeek,
   saveProgress,
   sessionKey,
@@ -11,10 +12,16 @@ import {
   toggleDaily,
   toggleSet,
   weekDates,
+  type DailyPart,
   type Progress,
 } from './lib/progress'
 import { SessionView } from './components/SessionView'
 
+const DAILY_ROWS: { part: DailyPart; label: string }[] = [
+  { part: 'core', label: 'Core' },
+  { part: 'workout', label: 'Workout' },
+  { part: 'stretch', label: 'Stretch' },
+]
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 export default function App() {
@@ -50,7 +57,10 @@ export default function App() {
       const part = s.kind as 'core' | 'stretch'
       if (Boolean(progress.daily[today]?.[part]) !== done) setProgress((p) => toggleDaily(p, today, part))
     } else {
-      setProgress((p) => setCompleted(p, sessionKey(week.number, s.id), done ? today : null))
+      setProgress((p) => {
+        const next = setCompleted(p, sessionKey(week.number, s.id), done ? today : null)
+        return done ? markDaily(next, today, 'workout') : next
+      })
     }
   }
 
@@ -108,8 +118,8 @@ export default function App() {
 
             <section className="card">
               <div className="card__head">
-                <h2>Daily core + stretch</h2>
-                <p className="muted">Aim for 5–7 days, this calendar week</p>
+                <h2>Daily routine</h2>
+                <p className="muted">Core + stretch 5–7 days; strength or cardio on workout days</p>
               </div>
               <table className="days">
                 <thead>
@@ -127,9 +137,9 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(['core', 'stretch'] as const).map((part) => (
+                  {DAILY_ROWS.map(({ part, label }) => (
                     <tr key={part}>
-                      <th scope="row">{part === 'core' ? 'Core' : 'Stretch'}</th>
+                      <th scope="row">{label}</th>
                       {dates.map((d) => {
                         const on = Boolean(progress.daily[d]?.[part])
                         return (
@@ -138,7 +148,7 @@ export default function App() {
                               type="button"
                               className={`dot ${on ? 'dot--on' : ''} ${d === today ? 'dot--today' : ''}`}
                               aria-pressed={on}
-                              aria-label={`${part} on ${d}`}
+                              aria-label={`${label} on ${d}`}
                               onClick={() => setProgress((p) => toggleDaily(p, d, part))}
                             >
                               {on ? '✓' : ''}

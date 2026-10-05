@@ -19,6 +19,7 @@ describe('App', () => {
     fireEvent.click(screen.getByText('Mark workout complete'))
     fireEvent.click(screen.getByText('← Week overview'))
     expect(screen.getByText('Strength').previousSibling).toHaveTextContent('1/3')
+    expect(screen.getByRole('button', { name: /^Workout on/, pressed: true })).toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem('strength-to-snow:progress:v1')!).completed['1:strength-a']).toBeTruthy()
   })
 })

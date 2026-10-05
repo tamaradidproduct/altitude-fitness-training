@@ -81,7 +81,7 @@ main { display: grid; gap: 20px; }
 
 .days { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .days th { font-size: 0.75rem; color: var(--muted); font-weight: 600; padding: 4px 0; }
-.days th[scope='row'] { text-align: left; width: 72px; color: var(--text); }
+.days th[scope='row'] { text-align: left; width: 76px; color: var(--text); }
 .days th.is-today { color: var(--brand); }
 .days abbr { text-decoration: none; }
 .days td { text-align: center; padding: 4px 0; }

@@ -1,10 +1,12 @@
+export type DailyPart = 'core' | 'workout' | 'stretch'
+
 export interface Progress {
   /** `${week}:${sessionId}` → ISO date the workout was completed. */
   completed: Record<string, string>
   /** `${week}:${sessionId}` → checked set keys `${round}-${exerciseIndex}`. */
   checks: Record<string, string[]>
-  /** YYYY-MM-DD → daily core / stretch completion. */
-  daily: Record<string, { core?: boolean; stretch?: boolean }>
+  /** YYYY-MM-DD → daily core / strength-or-cardio / stretch completion. */
+  daily: Record<string, Partial<Record<DailyPart, boolean>>>
 }
 
 export const STORAGE_KEY = 'strength-to-snow:progress:v1'
@@ -45,7 +47,13 @@ export function setCompleted(p: Progress, key: string, date: string | null): Pro
   return { ...p, completed }
 }
 
-export function toggleDaily(p: Progress, date: string, part: 'core' | 'stretch'): Progress {
+/** Marks a daily part done (never un-marks). */
+export function markDaily(p: Progress, date: string, part: DailyPart): Progress {
+  if (p.daily[date]?.[part]) return p
+  return toggleDaily(p, date, part)
+}
+
+export function toggleDaily(p: Progress, date: string, part: DailyPart): Progress {
   const day = p.daily[date] ?? {}
   return { ...p, daily: { ...p.daily, [date]: { ...day, [part]: !day[part] } } }
 }
@@ -77,6 +85,6 @@ export function weekDates(d: Date): Date[] {
   })
 }
 
-export function dailyCount(p: Progress, dates: string[], part: 'core' | 'stretch'): number {
+export function dailyCount(p: Progress, dates: string[], part: DailyPart): number {
   return dates.filter((d) => p.daily[d]?.[part]).length
 }
