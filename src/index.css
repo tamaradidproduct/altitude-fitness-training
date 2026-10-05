@@ -159,3 +159,5 @@ main { display: grid; gap: 20px; }
 .timer__controls .btn--primary { min-width: 110px; }
 
 .footer { text-align: center; color: var(--muted); font-size: 0.82rem; }
+
+.pdf-link { display: block; text-align: center; text-decoration: none; color: var(--text); }

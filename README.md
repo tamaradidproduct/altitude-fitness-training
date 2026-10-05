@@ -8,6 +8,7 @@ Tracker for the Altitude Attitude + ACECoLab pre-season program (Week 1: Base).
 - Guided timers for Cardio (warm-up, 15s/45s × 3 rounds, cooldown), Core, and Stretch
 - Daily core/stretch grid for the current calendar week
 - Progress saved in the browser (localStorage)
+- Link to the original program PDF (`public/pdf/week-N.pdf`)
 
 ## Scripts
 - `npm run dev` — local dev server
@@ -16,7 +17,7 @@ Tracker for the Altitude Attitude + ACECoLab pre-season program (Week 1: Base).
 - `npm run lint` — oxlint
 
 ## Adding weeks
-Add a `Week` object to `src/data/program.ts` and append it to `program.weeks`.
+Add a `Week` object to `src/data/program.ts`, append it to `program.weeks`, and drop the PDF in `public/pdf/week-N.pdf`.
 
 ## Deployment
 Pushes to `main` (and the current working branch) deploy to GitHub Pages via `.github/workflows/deploy.yml`:

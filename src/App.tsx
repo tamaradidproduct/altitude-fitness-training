@@ -17,6 +17,8 @@ import {
 } from './lib/progress'
 import { SessionView } from './components/SessionView'
 
+const pdfUrl = (week: number) => `${import.meta.env.BASE_URL}pdf/week-${week}.pdf`
+
 const DAILY_ROWS: { part: DailyPart; label: string }[] = [
   { part: 'core', label: 'Core' },
   { part: 'workout', label: 'Workout' },
@@ -210,6 +212,10 @@ export default function App() {
                 })}
               </ul>
             </section>
+
+            <a className="btn btn--ghost btn--block pdf-link" href={pdfUrl(week.number)} target="_blank" rel="noreferrer">
+              📄 View original Week {week.number} PDF
+            </a>
 
             <p className="footer">
               Each day: Core (5 min) → Strength or Cardio (15–20 min) → Stretch (5 min) ≈ 30 min.

@@ -11,6 +11,13 @@ describe('App', () => {
       expect(screen.getByText(name)).toBeInTheDocument()
   })
 
+  it('links to the original PDF', () => {
+    render(<App />)
+    const link = screen.getByRole('link', { name: /View original Week 1 PDF/ })
+    expect(link).toHaveAttribute('href', expect.stringMatching(/pdf\/week-1\.pdf$/))
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
   it('completes a workout and updates the weekly count', () => {
     render(<App />)
     fireEvent.click(screen.getByText('Powder Day'))
