@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Session } from '../data/program'
-import { setKey } from '../lib/progress'
+import { isRoundChecked } from '../lib/progress'
 import { ExerciseList } from './ExerciseList'
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
   checksFor: (sessionId: string) => string[]
   completedOn: (sessionId: string) => string | undefined
   onToggleSet: (sessionId: string, set: string) => void
-  onComplete: (sessionId: string, done: boolean) => void
+  onSetRound: (sessionId: string, round: number, checked: boolean) => void
 }
 
 export function WorkoutSection({
@@ -22,13 +22,14 @@ export function WorkoutSection({
   checksFor,
   completedOn,
   onToggleSet,
-  onComplete,
+  onSetRound,
 }: Props) {
   const session = workouts.find((w) => w.id === selectedId) ?? workouts[0]
   const [round, setRound] = useState(1)
   const checks = checksFor(session.id)
   const done = completedOn(session.id)
-  const roundDone = (r: number) => session.exercises.every((_, i) => checks.includes(setKey(r, i)))
+  const roundDone = (r: number) => isRoundChecked(checks, session, r)
+  const thisRoundDone = roundDone(round)
 
   return (
     <section className={`step kind--${session.kind}`} aria-labelledby="step-workout">
@@ -118,16 +119,26 @@ export function WorkoutSection({
         {checks.length} / {session.rounds * session.exercises.length} sets checked
       </p>
 
-      {done ? (
-        <div className="complete">
-          <span>✓ Completed {new Date(done + 'T00:00').toLocaleDateString()}</span>
-          <button type="button" className="link-btn" onClick={() => onComplete(session.id, false)}>
-            Undo
-          </button>
-        </div>
+      {done && (
+        <p className="complete" role="status">
+          ✓ Workout complete — all {session.rounds} rounds done
+        </p>
+      )}
+
+      {thisRoundDone ? (
+        <button type="button" className="btn btn--ghost btn--block" onClick={() => onSetRound(session.id, round, false)}>
+          ✓ Round {round} complete · Undo
+        </button>
       ) : (
-        <button type="button" className="btn btn--accent btn--block" onClick={() => onComplete(session.id, true)}>
-          Mark workout complete
+        <button
+          type="button"
+          className="btn btn--accent btn--block"
+          onClick={() => {
+            onSetRound(session.id, round, true)
+            if (round < session.rounds) setRound(round + 1)
+          }}
+        >
+          Mark round {round} complete
         </button>
       )}
     </section>

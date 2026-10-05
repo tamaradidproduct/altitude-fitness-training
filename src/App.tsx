@@ -3,12 +3,14 @@ import { program, WEEKLY_GOALS, type Session } from './data/program'
 import {
   dailyCount,
   isoDate,
+  checkAllSets,
   loadProgress,
   markDaily,
   resetWeek,
   saveProgress,
+  setRoundChecked,
   sessionKey,
-  setCompleted,
+  syncCompletion,
   toggleDaily,
   toggleSet,
   weekDates,
@@ -55,18 +57,21 @@ export default function App() {
 
   const dailyDone = (part: DailyPart) => Boolean(progress.daily[today]?.[part])
 
-  const setWorkoutDone = (id: string, done: boolean) =>
-    setProgress((p) => {
-      const next = setCompleted(p, keyOf(id), done ? today : null)
-      return done ? markDaily(next, today, 'workout') : next
-    })
+  const workoutById = (id: string) => week.workouts.find((w) => w.id === id)!
+
+  const toggleWorkoutSet = (id: string, set: string) =>
+    setProgress((p) => syncCompletion(toggleSet(p, keyOf(id), set), week.number, workoutById(id), today))
+
+  const setRound = (id: string, round: number, checked: boolean) =>
+    setProgress((p) =>
+      syncCompletion(setRoundChecked(p, keyOf(id), workoutById(id), round, checked), week.number, workoutById(id), today),
+    )
 
   const finishFlow = () =>
     setProgress((p) => {
-      let next = markDaily(p, today, 'core')
-      next = setCompleted(next, keyOf(selected.id), today)
-      next = markDaily(next, today, 'workout')
-      return markDaily(next, today, 'stretch')
+      const withSets = checkAllSets(p, keyOf(selected.id), selected)
+      const done = syncCompletion(withSets, week.number, selected, today)
+      return markDaily(markDaily(done, today, 'core'), today, 'stretch')
     })
 
   const countDone = (kind: Session['kind']) =>
@@ -190,8 +195,8 @@ export default function App() {
           onSelect={setSelectedId}
           checksFor={(id) => progress.checks[keyOf(id)] ?? []}
           completedOn={completedOn}
-          onToggleSet={(id, set) => setProgress((p) => toggleSet(p, keyOf(id), set))}
-          onComplete={setWorkoutDone}
+          onToggleSet={toggleWorkoutSet}
+          onSetRound={setRound}
         />
 
         <RoutineSection

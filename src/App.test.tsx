@@ -31,14 +31,34 @@ describe('App', () => {
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('completes a workout and updates the weekly count', () => {
+  it('marks a round complete, then the workout once all rounds are done', () => {
     render(<App />)
-    fireEvent.click(screen.getByRole('checkbox', { name: /Bodyweight Squat/ }))
-    expect(screen.getByText('1 / 15 sets checked')).toBeInTheDocument()
-    fireEvent.click(screen.getByText('Mark workout complete'))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark round 1 complete' }))
+    expect(screen.getByText('5 / 15 sets checked')).toBeInTheDocument()
+    // Advances to the next round automatically.
+    expect(screen.getByRole('tab', { name: /Round 2/, selected: true })).toBeInTheDocument()
+    expect(screen.queryByText(/Workout complete/)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark round 2 complete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark round 3 complete' }))
+    expect(screen.getByText(/Workout complete/)).toBeInTheDocument()
     expect(screen.getByText('Strength').previousSibling).toHaveTextContent('1/3')
     expect(screen.getByRole('button', { name: /^Workout on/, pressed: true })).toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem(STORE)!).completed['1:strength-a']).toBeTruthy()
+  })
+
+  it('undoing a round clears the workout completion', () => {
+    render(<App />)
+    for (const r of [1, 2, 3]) fireEvent.click(screen.getByRole('button', { name: `Mark round ${r} complete` }))
+    fireEvent.click(screen.getByRole('button', { name: /Round 3 complete · Undo/ }))
+    expect(screen.queryByText(/Workout complete/)).not.toBeInTheDocument()
+    expect(screen.getByText('Strength').previousSibling).toHaveTextContent('0/3')
+  })
+
+  it('checking individual sets also completes the round state', () => {
+    render(<App />)
+    for (const box of screen.getAllByRole('checkbox')) fireEvent.click(box)
+    expect(screen.getByRole('button', { name: /Round 1 complete · Undo/ })).toBeInTheDocument()
   })
 
   it('marks core and stretch done for today from their sections', () => {

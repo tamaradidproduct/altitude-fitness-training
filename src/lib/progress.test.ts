@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { emptyProgress, isoDate, markDaily, resetWeek, setCompleted, toggleDaily, toggleSet, weekDates } from './progress'
+import { week1 } from '../data/program'
+import { checkAllSets, emptyProgress, isRoundChecked, setRoundChecked, syncCompletion, isoDate, markDaily, resetWeek, setCompleted, toggleDaily, toggleSet, weekDates } from './progress'
 
 describe('progress helpers', () => {
   it('toggles sets on and off', () => {
@@ -40,5 +41,34 @@ describe('progress helpers', () => {
     const dates = weekDates(new Date(2026, 9, 8)).map(isoDate) // Thu Oct 8
     expect(dates[0]).toBe('2026-10-05')
     expect(dates[6]).toBe('2026-10-11')
+  })
+})
+
+describe('round completion', () => {
+  const session = week1.workouts[0]
+  const key = '1:strength-a'
+
+  it('checks and clears a single round', () => {
+    let p = setRoundChecked(emptyProgress(), key, session, 2, true)
+    expect(isRoundChecked(p.checks[key], session, 2)).toBe(true)
+    expect(isRoundChecked(p.checks[key], session, 1)).toBe(false)
+    p = setRoundChecked(p, key, session, 2, false)
+    expect(p.checks[key]).toEqual([])
+  })
+
+  it('completes the workout and the daily dot only when every round is checked', () => {
+    let p = emptyProgress()
+    for (const r of [1, 2]) p = setRoundChecked(p, key, session, r, true)
+    p = syncCompletion(p, 1, session, '2026-10-05')
+    expect(p.completed[key]).toBeUndefined()
+    p = syncCompletion(setRoundChecked(p, key, session, 3, true), 1, session, '2026-10-05')
+    expect(p.completed[key]).toBe('2026-10-05')
+    expect(p.daily['2026-10-05']).toEqual({ workout: true })
+    p = syncCompletion(setRoundChecked(p, key, session, 1, false), 1, session, '2026-10-06')
+    expect(p.completed[key]).toBeUndefined()
+  })
+
+  it('checkAllSets fills every set', () => {
+    expect(checkAllSets(emptyProgress(), key, session).checks[key]).toHaveLength(15)
   })
 })

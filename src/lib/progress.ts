@@ -1,3 +1,5 @@
+import type { Session } from '../data/program'
+
 export type DailyPart = 'core' | 'workout' | 'stretch'
 
 export interface Progress {
@@ -87,4 +89,38 @@ export function weekDates(d: Date): Date[] {
 
 export function dailyCount(p: Progress, dates: string[], part: DailyPart): number {
   return dates.filter((d) => p.daily[d]?.[part]).length
+}
+
+const allSetKeys = (session: Session) =>
+  Array.from({ length: session.rounds }, (_, r) =>
+    session.exercises.map((_, i) => setKey(r + 1, i)),
+  ).flat()
+
+export function isRoundChecked(checks: string[], session: Session, round: number): boolean {
+  return session.exercises.every((_, i) => checks.includes(setKey(round, i)))
+}
+
+/** Checks (or clears) every exercise in one round. */
+export function setRoundChecked(p: Progress, key: string, session: Session, round: number, checked: boolean): Progress {
+  const roundKeys = session.exercises.map((_, i) => setKey(round, i))
+  const rest = (p.checks[key] ?? []).filter((k) => !roundKeys.includes(k))
+  return { ...p, checks: { ...p.checks, [key]: checked ? [...rest, ...roundKeys] : rest } }
+}
+
+/**
+ * A workout counts as complete once every round is checked. Completing it
+ * also ticks today's Workout dot; un-checking a round clears the completion.
+ */
+export function syncCompletion(p: Progress, week: number, session: Session, today: string): Progress {
+  const key = sessionKey(week, session.id)
+  const checks = p.checks[key] ?? []
+  const allDone = allSetKeys(session).every((k) => checks.includes(k))
+  if (allDone && !p.completed[key]) return markDaily(setCompleted(p, key, today), today, 'workout')
+  if (!allDone && p.completed[key]) return setCompleted(p, key, null)
+  return p
+}
+
+/** Checks every set of a workout (used when the guided session finishes). */
+export function checkAllSets(p: Progress, key: string, session: Session): Progress {
+  return { ...p, checks: { ...p.checks, [key]: allSetKeys(session) } }
 }
