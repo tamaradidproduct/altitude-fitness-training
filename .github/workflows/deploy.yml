@@ -1,8 +1,10 @@
-name: Deploy to GitHub Pages
+name: CI and deploy
 
 on:
+  pull_request:
+    branches: [main]
   push:
-    branches: [main, claude/workout-tracker-app-dntg8m]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +13,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,13 +29,17 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      # Only publish from main; pull requests just run the checks above.
+      - if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 
   deploy:
     needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
