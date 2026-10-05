@@ -22,8 +22,12 @@ export default function App() {
   const [weekNumber] = useState(1)
   const [activeId, setActiveId] = useState<string | null>(null)
 
-  useEffect(() => saveProgress(progress), [progress])
-  useEffect(() => window.scrollTo(0, 0), [activeId])
+  useEffect(() => {
+    saveProgress(progress)
+  }, [progress])
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [activeId])
 
   const week = program.weeks.find((w) => w.number === weekNumber)!
   const [now] = useState(() => new Date())

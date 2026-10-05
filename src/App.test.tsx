@@ -22,3 +22,18 @@ describe('App', () => {
     expect(JSON.parse(localStorage.getItem('strength-to-snow:progress:v1')!).completed['1:strength-a']).toBeTruthy()
   })
 })
+
+describe('App in hosts that wrap window.scrollTo', () => {
+  it('does not treat a scrollTo return value as an effect cleanup', () => {
+    const original = window.scrollTo
+    window.scrollTo = (() => ({})) as unknown as typeof window.scrollTo
+    try {
+      render(<App />)
+      fireEvent.click(screen.getByText('Powder Day'))
+      expect(() => fireEvent.click(screen.getByText('← Week overview'))).not.toThrow()
+      expect(screen.getByText('Last Chair')).toBeInTheDocument()
+    } finally {
+      window.scrollTo = original
+    }
+  })
+})
