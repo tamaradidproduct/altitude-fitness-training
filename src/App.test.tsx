@@ -5,7 +5,10 @@ import App from './App'
 const STORE = 'strength-to-snow:progress:v1'
 
 describe('App', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    localStorage.setItem('strength-to-snow:week:v1', '1')
+  })
 
   it('shows core, workout and stretch inline under the tracker', () => {
     render(<App />)
@@ -77,6 +80,37 @@ describe('App', () => {
     const timer = screen.getByRole('region', { name: 'Guided timer' })
     expect(timer).toHaveTextContent('Core')
     expect(timer).toHaveTextContent('Step 1 of')
+  })
+
+  it('defaults to the latest week and lets you switch between weeks', () => {
+    localStorage.removeItem('strength-to-snow:week:v1')
+    render(<App />)
+    expect(screen.getByRole('tab', { name: 'Week 2', selected: true })).toBeInTheDocument()
+    expect(screen.getByText('Bird Dog Crunch')).toBeInTheDocument()
+    expect(screen.getByText('Week 2: Base — Build the Foundation')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /View original Week 2 PDF/ })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/pdf\/week-2\.pdf$/),
+    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Week 1' }))
+    expect(screen.getByText('Bird Dog')).toBeInTheDocument()
+    expect(localStorage.getItem('strength-to-snow:week:v1')).toBe('1')
+  })
+
+  it('tracks each week\'s workouts separately', () => {
+    render(<App />)
+    for (const r of [1, 2, 3]) fireEvent.click(screen.getByRole('button', { name: `Mark round ${r} complete` }))
+    expect(screen.getByText('Strength').previousSibling).toHaveTextContent('1/3')
+    fireEvent.click(screen.getByRole('tab', { name: 'Week 2' }))
+    expect(screen.getByText('Strength').previousSibling).toHaveTextContent('0/3')
+    expect(screen.queryByText(/Workout complete/)).not.toBeInTheDocument()
+  })
+
+  it('shows the exercise description on the timer screen', () => {
+    render(<App />)
+    fireEvent.click(screen.getByText('▶ Start guided session'))
+    const timer = screen.getByRole('region', { name: 'Guided timer' })
+    expect(timer).toHaveTextContent('Start on your forearms and toes')
   })
 
   it('does not treat a scrollTo return value as an effect cleanup', () => {
