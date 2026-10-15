@@ -5,10 +5,11 @@ export interface Exercise {
   /** Reps, hold time, or interval as written in the program. */
   prescription: string
   description: string
-  /** Seconds for a timed exercise (holds, stretches). Doubled when perSide. */
+  /** Seconds for a timed exercise (holds, stretches). Exercises without it are rep-based. */
   seconds?: number
-  /** Rest after the exercise (or after each side) in guided timers. */
+  /** Built-in rest after the exercise (or after each side); otherwise the timer adds a short one. */
   restSeconds?: number
+  /** Done once on each side within every set (left, then right). */
   perSide?: boolean
 }
 
@@ -160,6 +161,7 @@ export const week1: Week = {
         {
           name: 'Reverse Lunge',
           prescription: '8 each side',
+          perSide: true,
           description:
             'Step one foot backward and lower your back knee toward the floor. Keep your front knee tracking over your foot. Push through your front foot to return to standing.',
         },
@@ -178,6 +180,7 @@ export const week1: Week = {
         {
           name: 'Band Lateral Walk',
           prescription: '10 each side',
+          perSide: true,
           description:
             'Place a resistance band above your knees or around your ankles. Maintain a slight squat and step sideways while keeping tension on the band.',
         },
@@ -201,6 +204,7 @@ export const week1: Week = {
         {
           name: 'Step-Up',
           prescription: '8 each side',
+          perSide: true,
           description:
             'Place one foot fully on a sturdy box, bench, or step. Drive through that foot to step up. Lower with control and repeat.',
         },
@@ -213,6 +217,7 @@ export const week1: Week = {
         {
           name: 'Single-Leg RDL Reach',
           prescription: '8 each side',
+          perSide: true,
           description:
             'Balance on one leg with a slight bend in your knee. Hinge forward from your hip as the opposite leg extends behind you. Reach toward the floor, then squeeze your standing-side glute to return upright.',
         },
@@ -236,6 +241,7 @@ export const week1: Week = {
         {
           name: 'Lateral Lunge',
           prescription: '8 each side',
+          perSide: true,
           description:
             'Step wide to one side and sit your hips back over the stepping leg while keeping the opposite leg relatively straight. Push through the bent leg to return to standing.',
         },
@@ -249,12 +255,14 @@ export const week1: Week = {
         {
           name: 'Split Squat',
           prescription: '8 each side',
+          perSide: true,
           description:
             'Start in a staggered stance with one foot forward and one behind you. Lower straight down by bending both knees, then press through your front foot to return to the starting position.',
         },
         {
           name: 'Banded Side Step',
           prescription: '10 each side',
+          perSide: true,
           description:
             'Place a resistance band above your knees or around your ankles. Keep your knees slightly bent and step laterally while maintaining tension on the band.',
         },
@@ -356,10 +364,244 @@ export const week1: Week = {
   ],
 }
 
+/** Week 1's session with new prescriptions (descriptions are unchanged in Week 2). */
+function progressed(base: Session, prescriptions: Record<string, string>, seconds: Record<string, number> = {}): Session {
+  return {
+    ...base,
+    exercises: base.exercises.map((ex) => ({
+      ...ex,
+      prescription: prescriptions[ex.name] ?? ex.prescription,
+      ...(seconds[ex.name] ? { seconds: seconds[ex.name] } : {}),
+    })),
+  }
+}
+
+const [strengthA, strengthB, strengthC] = week1.workouts
+
+const week2Core: Session = {
+  ...core,
+  exercises: [
+    {
+      name: 'Forearm Plank',
+      prescription: '45 sec hold, 15 sec rest',
+      seconds: 45,
+      restSeconds: 15,
+      description: core.exercises[0].description,
+    },
+    {
+      name: 'Glute Bridge with Band',
+      prescription: '30 sec',
+      seconds: 30,
+      description:
+        'Lie on your back with your knees bent and feet flat on the floor. Place a resistance band above your knees. Press through your feet to lift your hips while gently pressing your knees outward against the band. Keep your hips level and glutes engaged.',
+    },
+    {
+      name: 'Bird Dog Crunch',
+      prescription: '15 each side',
+      perSide: true,
+      description:
+        'Begin on your hands and knees. Extend one arm forward and the opposite leg backward, then bring your elbow and knee together underneath your torso. Re-extend with control before repeating.',
+    },
+    {
+      name: 'Super Woman Hold',
+      prescription: '15 sec hold, 15 sec rest',
+      seconds: 15,
+      restSeconds: 15,
+      description:
+        'Lie face down with your arms extended overhead. Lift your chest, arms, and legs slightly off the floor and hold. Keep your neck neutral and focus on creating length through your body rather than lifting as high as possible.',
+    },
+  ],
+}
+
+const week2Stretch: Session = {
+  ...stretch,
+  exercises: [
+    {
+      name: 'Half-Kneeling Hip Flexor',
+      prescription: '30 sec each side',
+      seconds: 30,
+      perSide: true,
+      description:
+        'Begin in a half-kneeling position with 1 knee on the floor and the opposite foot in front. Tuck your pelvis slightly & shift forward until you feel a stretch through the front of the kneeling-side hip.',
+    },
+    {
+      name: 'Hamstring Hinge',
+      prescription: '30 sec each side',
+      seconds: 30,
+      perSide: true,
+      description:
+        'Extend 1 leg slightly in front of you with your heel grounded and toes lifted. Push your hips backward and hinge forward while keeping your spine long.',
+    },
+    {
+      name: 'Downward Dog Pedal',
+      prescription: '60 sec',
+      seconds: 60,
+      description:
+        'Begin in downward-facing dog. Alternate bending one knee while pressing the opposite heel toward the floor. Move slowly and continuously from side to side.',
+    },
+    {
+      name: 'Standing Figure-4',
+      prescription: '30 sec each side',
+      seconds: 30,
+      perSide: true,
+      description:
+        'Cross one ankle over the opposite thigh and sit your hips backward into a single-leg squat position. Keep your chest lifted and use a wall or chair for balance if needed.',
+    },
+    {
+      name: 'Standing Side Reach',
+      prescription: '30 sec each side',
+      seconds: 30,
+      perSide: true,
+      description:
+        'Stand tall and reach one arm overhead. Gently lean toward the opposite side, creating length through your torso. Return to center and switch sides.',
+    },
+  ],
+}
+
+const week2StrengthA: Session = (() => {
+  const base = progressed(strengthA, {
+    'Bodyweight Squat': '15 reps',
+    'Reverse Lunge': '10 each side',
+    'Calf Raise': '20 reps',
+    'Band Lateral Walk': '12 each side',
+  })
+  return {
+    ...base,
+    // Week 2 swaps the incline push-up for a full push-up.
+    exercises: base.exercises.map((ex) =>
+      ex.name === 'Incline Push-Up'
+        ? {
+            name: 'Push-Up',
+            prescription: '8–10 reps',
+            description:
+              'Begin in a straight-arm plank with your hands slightly wider than shoulder-width. Bend your elbows and lower your chest toward the floor while keeping your body in a straight line. Press through your hands to return to the starting position.',
+          }
+        : ex,
+    ),
+  }
+})()
+
+export const week2: Week = {
+  number: 2,
+  phase: 'Base',
+  theme: 'Build the Foundation',
+  core: week2Core,
+  stretch: week2Stretch,
+  workouts: [
+    week2StrengthA,
+    progressed(strengthB, {
+      'Good Morning': '15 reps',
+      'Step-Up': '10 each side',
+      'Band Row': '15 reps',
+      'Single-Leg RDL Reach': '10 each side',
+      'Band Pull-Apart': '15 reps',
+    }),
+    progressed(
+      strengthC,
+      {
+        'Lateral Lunge': '10 each side',
+        'Wall Sit': '40 seconds',
+        'Split Squat': '10 each side',
+        'Banded Side Step': '12 each side',
+        'Dumbbell Shoulder Press': '12 reps',
+      },
+      { 'Wall Sit': 40 },
+    ),
+    {
+      id: 'cardio-1',
+      kind: 'cardio',
+      title: 'Cardio 1',
+      nickname: 'Earn Your Turns',
+      durationLabel: '~19 min',
+      rounds: 3,
+      interval: { work: 15, rest: 45 },
+      transitionSeconds: 30,
+      warmup: week1.workouts[3].warmup,
+      cooldown: cardioCooldown,
+      exercises: [
+        {
+          name: 'Power March',
+          prescription: '15s work / 45s recovery',
+          description:
+            'March in place with intention, driving your knees higher and pumping your opposite arm forward. Move briskly while maintaining an upright posture.',
+        },
+        {
+          name: 'Step Jacks + Arms',
+          prescription: '15s work / 45s recovery',
+          description:
+            'Step one foot out to the side while raising both arms overhead. Return to center and repeat on the opposite side, maintaining a continuous rhythm.',
+        },
+        {
+          name: 'Low High Knees',
+          prescription: '15s work / 45s recovery',
+          description:
+            'Quickly alternate lifting your knees without jumping. Keep your torso tall and increase the pace while staying light on your feet.',
+        },
+        {
+          name: 'Lateral Shuffle Step',
+          prescription: '15s work / 45s recovery',
+          description:
+            'Take two or three quick steps sideways, then change direction. Stay low with your knees slightly bent and your feet facing forward.',
+        },
+        {
+          name: 'Fast Feet',
+          prescription: '15s work / 45s recovery',
+          description:
+            'Stand in an athletic position and take small, rapid steps in place. Keep your knees soft and stay light on your feet.',
+        },
+      ],
+    },
+    {
+      id: 'cardio-2',
+      kind: 'cardio',
+      title: 'Cardio 2',
+      nickname: 'Do It for the Après',
+      durationLabel: '~19 min',
+      rounds: 3,
+      interval: { work: 15, rest: 45 },
+      transitionSeconds: 30,
+      warmup: week1.workouts[4].warmup,
+      cooldown: cardioCooldown,
+      exercises: [
+        {
+          name: 'Squat + Calf Raise',
+          prescription: '15s work / 45s recovery',
+          description:
+            'Lower into a bodyweight squat. As you return to standing, rise onto the balls of your feet. Lower your heels with control before beginning the next squat.',
+        },
+        {
+          name: 'Reverse Lunge + Knee Drive',
+          prescription: '15s work / 45s recovery',
+          description:
+            'Step one foot backward into a reverse lunge. Drive through your front foot to stand while bringing the back knee forward toward your chest. Repeat before switching sides.',
+        },
+        {
+          name: 'Walkout + Shoulder Tap',
+          prescription: '15s work / 45s recovery',
+          description:
+            'From standing, hinge forward and walk your hands into a high plank. Tap one hand to the opposite shoulder, then the other. Walk your hands back toward your feet and return to standing.',
+        },
+        {
+          name: 'Alternating Power Knee',
+          prescription: '15s work / 45s recovery',
+          description:
+            'Alternate strong knee drives from side to side. Use your arms to create a full-body movement and increase the pace while staying grounded.',
+        },
+        {
+          name: 'Step-Back Burpee + Reach',
+          prescription: '15s work / 45s recovery',
+          description:
+            'Squat down and place your hands on the floor. Step one foot and then the other back into a plank. Step your feet forward, return to standing, and reach both arms overhead.',
+        },
+      ],
+    },
+  ],
+}
+
 export const program = {
   title: 'From Strength to Snow',
   subtitle: 'Altitude Attitude + ACECoLab Pre-Season Fitness Training Program',
-  weeks: [week1],
+  weeks: [week1, week2],
 }
 
 /** Weekly goals from the program overview. */

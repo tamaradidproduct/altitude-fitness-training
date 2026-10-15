@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { program, WEEKLY_GOALS, type Session } from './data/program'
 import {
   dailyCount,
@@ -18,6 +18,7 @@ import {
   type Progress,
 } from './lib/progress'
 import { GuidedTimer } from './components/GuidedTimer'
+import { useWakeLock } from './lib/useWakeLock'
 import { RoutineSection } from './components/RoutineSection'
 import { WorkoutSection } from './components/WorkoutSection'
 
@@ -28,16 +29,37 @@ const DAILY_ROWS: { part: DailyPart; label: string }[] = [
   { part: 'workout', label: 'Workout' },
   { part: 'stretch', label: 'Stretch' },
 ]
+const WEEK_KEY = 'strength-to-snow:week:v1'
+const latestWeek = program.weeks[program.weeks.length - 1].number
+
+function loadWeek(): number {
+  try {
+    const saved = Number(localStorage.getItem(WEEK_KEY))
+    return program.weeks.some((w) => w.number === saved) ? saved : latestWeek
+  } catch {
+    return latestWeek
+  }
+}
+
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress)
-  const [weekNumber] = useState(1)
+  const [weekNumber, setWeekNumber] = useState(loadWeek)
   const [timerOpen, setTimerOpen] = useState(false)
+
+  useWakeLock()
 
   useEffect(() => {
     saveProgress(progress)
   }, [progress])
+  useEffect(() => {
+    try {
+      localStorage.setItem(WEEK_KEY, String(weekNumber))
+    } catch {
+      // Storage unavailable; the week just resets on reload.
+    }
+  }, [weekNumber])
 
   const week = program.weeks.find((w) => w.number === weekNumber)!
   const [now] = useState(() => new Date())
@@ -47,13 +69,21 @@ export default function App() {
   const keyOf = (id: string) => sessionKey(week.number, id)
   const completedOn = (id: string) => progress.completed[keyOf(id)]
 
-  // Default to the first workout not yet done this week.
-  const [selectedId, setSelectedId] = useState(
-    () => (week.workouts.find((w) => !loadProgress().completed[sessionKey(week.number, w.id)]) ?? week.workouts[0]).id,
-  )
-  const selected = week.workouts.find((w) => w.id === selectedId) ?? week.workouts[0]
+  // Per week: the workout the user picked, else the first one not done when the app opened.
+  const [picked, setPicked] = useState<Record<number, string>>({})
+  const [defaults] = useState(() => {
+    const saved = loadProgress()
+    return Object.fromEntries(
+      program.weeks.map((w) => [
+        w.number,
+        (w.workouts.find((x) => !saved.completed[sessionKey(w.number, x.id)]) ?? w.workouts[0]).id,
+      ]),
+    )
+  })
+  const selected =
+    week.workouts.find((w) => w.id === (picked[week.number] ?? defaults[week.number])) ?? week.workouts[0]
   const { core, stretch } = week
-  const flow = useMemo<Session[]>(() => [core, selected, stretch], [core, selected, stretch])
+  const flow: Session[] = [core, selected, stretch]
 
   const dailyDone = (part: DailyPart) => Boolean(progress.daily[today]?.[part])
 
@@ -98,7 +128,27 @@ export default function App() {
         </div>
       </header>
 
-      <main>
+      {program.weeks.length > 1 && (
+        <div className="weeks" role="tablist" aria-label="Program week">
+          {program.weeks.map((w) => (
+            <button
+              key={w.number}
+              type="button"
+              role="tab"
+              aria-selected={w.number === week.number}
+              className={`tab ${w.number === week.number ? 'tab--active' : ''}`}
+              onClick={() => {
+                setWeekNumber(w.number)
+                setTimerOpen(false)
+              }}
+            >
+              Week {w.number}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <main key={week.number}>
         <section aria-label="Weekly progress" className="stats">
           {stats.map((s) => (
             <div key={s.label} className={`stat ${s.value >= s.goal ? 'stat--met' : ''}`}>
@@ -169,7 +219,7 @@ export default function App() {
           </div>
           {timerOpen ? (
             <>
-              <GuidedTimer key={selected.id} sessions={flow} onFinish={finishFlow} />
+              <GuidedTimer key={`${week.number}-${selected.id}`} sessions={flow} onFinish={finishFlow} />
               <button type="button" className="link-btn" onClick={() => setTimerOpen(false)}>
                 Close timer
               </button>
@@ -192,7 +242,7 @@ export default function App() {
           step={2}
           workouts={week.workouts}
           selectedId={selected.id}
-          onSelect={setSelectedId}
+          onSelect={(id) => setPicked((p) => ({ ...p, [week.number]: id }))}
           checksFor={(id) => progress.checks[keyOf(id)] ?? []}
           completedOn={completedOn}
           onToggleSet={toggleWorkoutSet}

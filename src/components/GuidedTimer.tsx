@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import type { Session } from '../data/program'
 import { buildFlowPhases, formatClock, type Phase } from '../lib/timer'
 
@@ -24,7 +24,7 @@ function beep(freq = 880, ms = 150) {
   }
 }
 
-const KIND_LABEL = { warmup: 'Warm-up', work: 'Work', rest: 'Recover', cooldown: 'Cooldown' } as const
+const KIND_LABEL = { warmup: 'Warm-up', work: 'Work', rest: 'Rest', cooldown: 'Cooldown' } as const
 
 interface TimerState {
   index: number
@@ -59,8 +59,13 @@ function reducer(phases: Phase[]) {
   }
 }
 
+function NextLine({ next, done }: { next?: Phase; done: boolean }) {
+  return <p className="timer__next">{!done && next ? `Next: ${next.label}` : '\u00a0'}</p>
+}
+
 export function GuidedTimer({ sessions, onFinish }: Props) {
-  const phases = useMemo(() => buildFlowPhases(sessions), [sessions])
+  // Fixed for the life of the timer; the parent remounts it (via key) when the workout changes.
+  const [phases] = useState(() => buildFlowPhases(sessions))
   const [{ index, remaining, running, done }, dispatch] = useReducer(reducer(phases), {
     index: 0,
     remaining: phases[0]?.seconds ?? 0,
@@ -113,7 +118,9 @@ export function GuidedTimer({ sessions, onFinish }: Props) {
         {done ? 'Session complete! 🎿' : phase.label}
       </p>
       <p className={`timer__clock ${manual && !done ? 'timer__clock--manual' : ''}`}>{done ? '0:00' : manual ? phase.detail : formatClock(remaining)}</p>
-      <p className="timer__next">{!done && next ? `Next: ${next.label}` : ' '}</p>
+      {phase.kind === 'rest' && <NextLine next={next} done={done} />}
+      {!done && phase.description && <p className="timer__desc">{phase.description}</p>}
+      {phase.kind !== 'rest' && <NextLine next={next} done={done} />}
 
       <div className="timer__bar" aria-hidden>
         <div style={{ width: `${pct}%` }} />
