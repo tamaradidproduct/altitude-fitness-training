@@ -33,7 +33,10 @@ export function ExerciseList({ session, round, checks = [], onToggle }: Props) {
                 </>
               ) : (
                 <div className="exercise__name">
-                  <span>{ex.name}</span>
+                  <span>
+                    {ex.name}
+                    {ex.optional && <span className="badge">Optional</span>}
+                  </span>
                   <span className="exercise__rx">{ex.prescription}</span>
                 </div>
               )}

@@ -11,7 +11,7 @@ interface Props {
 }
 
 /** Core or Stretch + Mobility: a numbered, always-visible step in the daily flow. */
-export function RoutineSection({ step, session, done, onToggleDone }: Props) {
+export function RoutineSection({ step, session, done, onToggleDone, children }: Props) {
   return (
     <section className={`step kind--${session.kind}`} aria-labelledby={`step-${session.id}`}>
       <header className="step__head">
@@ -32,6 +32,7 @@ export function RoutineSection({ step, session, done, onToggleDone }: Props) {
         </button>
       </header>
       <ExerciseList session={session} />
+      {children}
     </section>
   )
 }

@@ -11,6 +11,8 @@ export interface Exercise {
   restSeconds?: number
   /** Done once on each side within every set (left, then right). */
   perSide?: boolean
+  /** Added by the user from the optional list rather than part of the program. */
+  optional?: boolean
 }
 
 export interface Session {
@@ -603,6 +605,55 @@ export const program = {
   subtitle: 'Altitude Attitude + ACECoLab Pre-Season Fitness Training Program',
   weeks: [week1, week2],
 }
+
+/**
+ * Optional extras the user can add to the daily Core routine. Not part of the
+ * original program, and never included unless selected. Edit freely.
+ */
+export const optionalCore: Exercise[] = [
+  {
+    name: 'Dead Bug',
+    prescription: '10 each side',
+    perSide: true,
+    description:
+      'Lie on your back with your arms reaching toward the ceiling and your hips and knees bent to 90 degrees. Press your lower back gently into the floor, then slowly extend the opposite arm and leg toward the floor. Return with control and repeat on the other side.',
+  },
+  {
+    name: 'Side Plank',
+    prescription: '30 sec each side',
+    seconds: 30,
+    perSide: true,
+    description:
+      'Lie on your side with your elbow directly under your shoulder and your legs stacked. Lift your hips so your body forms a straight line from head to feet. Keep your hips stacked and breathe steadily. Drop to your knees if you need to.',
+  },
+  {
+    name: 'Bicycle Crunch',
+    prescription: '30 sec',
+    seconds: 30,
+    description:
+      'Lie on your back with your hands lightly behind your head. Bring one knee toward your chest while rotating the opposite elbow toward it, then switch sides in a slow, pedaling motion. Keep your lower back pressed down and avoid pulling on your neck.',
+  },
+  {
+    name: 'Hollow Body Hold',
+    prescription: '20 sec hold',
+    seconds: 20,
+    description:
+      'Lie on your back and press your lower back into the floor. Lift your shoulders and legs a few inches off the ground with your arms reaching overhead. Hold a long, shallow "banana" shape. Bend your knees or raise your legs higher to make it easier.',
+  },
+  {
+    name: 'Russian Twist',
+    prescription: '20 reps',
+    description:
+      'Sit with your knees bent and your heels on the floor, leaning back slightly with a long spine. Clasp your hands in front of your chest and rotate your torso from side to side, tapping the floor beside you if you like. Each side counts as one rep.',
+  },
+  {
+    name: 'Slow Mountain Climber',
+    prescription: '30 sec',
+    seconds: 30,
+    description:
+      'Start in a high plank with your hands under your shoulders. Drive one knee toward your chest, then switch legs in a controlled rhythm. Keep your hips level and your core braced.',
+  },
+]
 
 /** Weekly goals from the program overview. */
 export const WEEKLY_GOALS = { strength: 3, cardio: 2, dailyMin: 5, dailyMax: 7 }

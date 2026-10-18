@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { week1, week2 } from '../data/program'
+import { optionalCore, week1, week2 } from '../data/program'
 import { AUTO_REST_SECONDS, buildFlowPhases, buildPhases, formatClock, totalSeconds } from './timer'
 
 const workout = (week: typeof week1, id: string) => week.workouts.find((w) => w.id === id)!
@@ -99,6 +99,36 @@ describe('buildFlowPhases', () => {
     expect(phases[i].seconds).toBe(40)
     expect(phases[i + 1]).toMatchObject({ kind: 'rest', seconds: AUTO_REST_SECONDS })
     expect(phases.filter((p) => p.label === 'Wall Sit')).toHaveLength(3)
+  })
+})
+
+describe('optional core exercises in the timer', () => {
+  const withExtras = (names: string[]) => ({
+    ...week1.core,
+    exercises: [...week1.core.exercises, ...optionalCore.filter((e) => names.includes(e.name))],
+  })
+
+  it('adds nothing unless selected', () => {
+    expect(buildPhases(withExtras([])).map((p) => p.label)).toEqual(buildPhases(week1.core).map((p) => p.label))
+  })
+
+  it('runs a selected two-sided hold once per side after the program moves, with 10s rests', () => {
+    const phases = buildPhases(withExtras(['Side Plank']))
+    const labels = phases.map((p) => p.label)
+    expect(labels.slice(-3)).toEqual(['Side Plank — Left', 'Switch sides', 'Side Plank — Right'])
+    // Super Woman is no longer last, so it gets a 10s rest before the optional move.
+    expect(labels.indexOf('Side Plank — Left')).toBeGreaterThan(labels.indexOf('Super Woman — Alternating Arm + Leg'))
+    expect(totalSeconds(phases) - totalSeconds(buildPhases(week1.core))).toBe(10 + 30 + 10 + 30)
+  })
+
+  it('makes rep-based extras tap-to-continue steps, once per side when two-sided', () => {
+    const phases = buildPhases(withExtras(['Dead Bug', 'Russian Twist']))
+    const manual = phases.filter((p) => p.manual)
+    expect(manual.map((p) => `${p.label}: ${p.detail}`)).toEqual([
+      'Dead Bug — Left: 10 reps',
+      'Dead Bug — Right: 10 reps',
+      'Russian Twist: 20 reps',
+    ])
   })
 })
 

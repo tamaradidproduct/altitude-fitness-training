@@ -8,6 +8,7 @@ describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
     localStorage.setItem('strength-to-snow:week:v1', '1')
+    localStorage.removeItem('strength-to-snow:optional-core:v1')
   })
 
   it('shows core, workout and stretch inline under the tracker', () => {
@@ -121,5 +122,51 @@ describe('App', () => {
     } finally {
       window.scrollTo = original
     }
+  })
+
+  describe('optional core exercises', () => {
+    const open = () => fireEvent.click(screen.getByRole('button', { name: /Add optional core exercises/ }))
+
+    it('are not included by default', () => {
+      render(<App />)
+      expect(screen.getByText('none added')).toBeInTheDocument()
+      expect(screen.queryByText('Dead Bug')).not.toBeInTheDocument()
+      expect(screen.queryByText('Optional')).not.toBeInTheDocument()
+    })
+
+    it('can be added from the picker, shown as optional, and removed again', () => {
+      render(<App />)
+      open()
+      fireEvent.click(screen.getByRole('button', { name: 'Add Dead Bug' }))
+      expect(screen.getByText('1 added')).toBeInTheDocument()
+      expect(screen.getByText('Optional')).toBeInTheDocument()
+      expect(screen.getByText('5 min + 1 optional')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Remove Dead Bug' }))
+      expect(screen.queryByText('Optional')).not.toBeInTheDocument()
+      expect(screen.getByText('none added')).toBeInTheDocument()
+    })
+
+    it('are remembered between visits', () => {
+      const first = render(<App />)
+      open()
+      fireEvent.click(screen.getByRole('button', { name: 'Add Side Plank' }))
+      first.unmount()
+      render(<App />)
+      expect(screen.getByText('1 added')).toBeInTheDocument()
+      expect(JSON.parse(localStorage.getItem('strength-to-snow:optional-core:v1')!)).toEqual(['Side Plank'])
+    })
+
+    it('are included in the guided timer only when selected', () => {
+      render(<App />)
+      const steps = () => Number(/of (\d+)/.exec(screen.getByRole('region', { name: 'Guided timer' }).textContent!)![1])
+      fireEvent.click(screen.getByText('▶ Start guided session'))
+      const before = steps()
+      open()
+      fireEvent.click(screen.getByRole('button', { name: 'Add Side Plank' }))
+      // Rest before it, left, switch-sides rest, right: 4 more steps; the timer restarts with the new routine.
+      expect(steps()).toBe(before + 4)
+      fireEvent.click(screen.getByRole('button', { name: 'Remove Side Plank' }))
+      expect(steps()).toBe(before)
+    })
   })
 })

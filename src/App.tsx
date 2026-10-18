@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { program, WEEKLY_GOALS, type Session } from './data/program'
+import { optionalCore, program, WEEKLY_GOALS, type Session } from './data/program'
 import {
   dailyCount,
   isoDate,
@@ -18,7 +18,9 @@ import {
   type Progress,
 } from './lib/progress'
 import { GuidedTimer } from './components/GuidedTimer'
+import { loadOptionalCore, saveOptionalCore } from './lib/preferences'
 import { useWakeLock } from './lib/useWakeLock'
+import { OptionalCorePicker } from './components/OptionalCorePicker'
 import { RoutineSection } from './components/RoutineSection'
 import { WorkoutSection } from './components/WorkoutSection'
 
@@ -47,6 +49,7 @@ export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress)
   const [weekNumber, setWeekNumber] = useState(loadWeek)
   const [timerOpen, setTimerOpen] = useState(false)
+  const [extraCore, setExtraCore] = useState<string[]>(loadOptionalCore)
 
   useWakeLock()
 
@@ -82,8 +85,21 @@ export default function App() {
   })
   const selected =
     week.workouts.find((w) => w.id === (picked[week.number] ?? defaults[week.number])) ?? week.workouts[0]
-  const { core, stretch } = week
+  const { stretch } = week
+  // Selected optional exercises follow the program's core moves, in list order.
+  const extras = optionalCore.filter((ex) => extraCore.includes(ex.name)).map((ex) => ({ ...ex, optional: true }))
+  const core: Session = {
+    ...week.core,
+    durationLabel: extras.length > 0 ? `5 min + ${extras.length} optional` : week.core.durationLabel,
+    exercises: [...week.core.exercises, ...extras],
+  }
   const flow: Session[] = [core, selected, stretch]
+  const toggleExtra = (name: string) =>
+    setExtraCore((cur) => {
+      const next = cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name]
+      saveOptionalCore(next)
+      return next
+    })
 
   const dailyDone = (part: DailyPart) => Boolean(progress.daily[today]?.[part])
 
@@ -219,7 +235,7 @@ export default function App() {
           </div>
           {timerOpen ? (
             <>
-              <GuidedTimer key={`${week.number}-${selected.id}`} sessions={flow} onFinish={finishFlow} />
+              <GuidedTimer key={`${week.number}-${selected.id}-${extras.length}-${extras.map((e) => e.name).join()}`} sessions={flow} onFinish={finishFlow} />
               <button type="button" className="link-btn" onClick={() => setTimerOpen(false)}>
                 Close timer
               </button>
@@ -233,10 +249,12 @@ export default function App() {
 
         <RoutineSection
           step={1}
-          session={week.core}
+          session={core}
           done={dailyDone('core')}
           onToggleDone={() => setProgress((p) => toggleDaily(p, today, 'core'))}
-        />
+        >
+          <OptionalCorePicker options={optionalCore} selected={extraCore} onToggle={toggleExtra} />
+        </RoutineSection>
 
         <WorkoutSection
           step={2}
