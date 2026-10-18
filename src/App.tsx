@@ -280,7 +280,16 @@ export default function App() {
           </div>
           {timerOpen ? (
             <>
-              <GuidedTimer key={`${week.number}-${selected.id}-${extras.length}-${extras.map((e) => e.name).join()}`} sessions={flow} onFinish={finishFlow} />
+              <GuidedTimer
+                key={`${week.number}-${selected.id}-${extras.length}-${extras.map((e) => e.name).join()}`}
+                sessions={flow}
+                onFinish={finishFlow}
+                summary={[
+                  { label: 'Core', kcal: roundKcal(coreKcal) },
+                  { label: selected.nickname ?? selected.title, kcal: roundKcal(kcalOf(selected)) },
+                  { label: 'Stretch + Mobility', kcal: roundKcal(stretchKcal) },
+                ]}
+              />
               <button type="button" className="link-btn" onClick={() => setTimerOpen(false)}>
                 Close timer
               </button>

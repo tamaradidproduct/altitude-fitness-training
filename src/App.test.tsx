@@ -306,4 +306,27 @@ describe('calorie estimates', () => {
     expect(screen.getByLabelText('Age')).toHaveValue(38)
     expect(screen.getByLabelText('Sex')).toHaveValue('female')
   })
+
+  it('shows the calories burned when a workout is completed', () => {
+    render(<App />)
+    expect(screen.queryByText(/kcal burned/)).not.toBeInTheDocument()
+    for (const r of [1, 2, 3]) fireEvent.click(screen.getByRole('button', { name: `Mark round ${r} complete` }))
+    expect(screen.getByText(/≈ \d+ kcal burned/)).toBeInTheDocument()
+  })
+
+  it('shows a calorie breakdown when the guided session finishes', () => {
+    render(<App />)
+    fireEvent.click(screen.getByText('▶ Start guided session'))
+    const timer = screen.getByRole('region', { name: 'Guided timer' })
+    expect(within(timer).queryByLabelText('Calories burned')).not.toBeInTheDocument()
+    for (let i = 0; i < 500 && !/Session complete/.test(timer.textContent ?? ''); i++)
+      fireEvent.click(within(timer).getByRole('button', { name: /Skip/ }))
+    const summary = within(timer).getByLabelText('Calories burned')
+    expect(summary).toHaveTextContent('Core')
+    expect(summary).toHaveTextContent('Powder Day')
+    expect(summary).toHaveTextContent('Stretch + Mobility')
+    expect(summary).toHaveTextContent(/Total ≈ \d+ kcal/)
+    // Finishing also completes the workout, which now reports its own calories.
+    expect(screen.getByText(/Workout complete/)).toBeInTheDocument()
+  })
 })

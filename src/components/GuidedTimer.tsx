@@ -6,6 +6,8 @@ interface Props {
   /** Sessions run back to back, in order. */
   sessions: Session[]
   onFinish: () => void
+  /** Estimated calories per part, shown when the session finishes. */
+  summary?: Array<{ label: string; kcal: number }>
 }
 
 let audioCtx: AudioContext | null = null
@@ -63,7 +65,7 @@ function NextLine({ next, done }: { next?: Phase; done: boolean }) {
   return <p className="timer__next">{!done && next ? `Next: ${next.label}` : '\u00a0'}</p>
 }
 
-export function GuidedTimer({ sessions, onFinish }: Props) {
+export function GuidedTimer({ sessions, onFinish, summary }: Props) {
   // Fixed for the life of the timer; the parent remounts it (via key) when the workout changes.
   const [phases] = useState(() => buildFlowPhases(sessions))
   const [{ index, remaining, running, done }, dispatch] = useReducer(reducer(phases), {
@@ -128,6 +130,23 @@ export function GuidedTimer({ sessions, onFinish }: Props) {
       <p className="timer__total">
         Step {done ? phases.length : index + 1} of {phases.length}
       </p>
+
+      {done && summary && summary.length > 0 && (
+        <div className="timer__summary" aria-label="Calories burned">
+          <p className="timer__summary-title">Estimated calories burned</p>
+          <ul>
+            {summary.map((part) => (
+              <li key={part.label}>
+                <span>{part.label}</span>
+                <span>≈ {part.kcal} kcal</span>
+              </li>
+            ))}
+          </ul>
+          <p className="timer__summary-total">
+            Total ≈ {Math.round(summary.reduce((sum, part) => sum + part.kcal, 0) / 5) * 5} kcal
+          </p>
+        </div>
+      )}
 
       <div className="timer__controls">
         <button

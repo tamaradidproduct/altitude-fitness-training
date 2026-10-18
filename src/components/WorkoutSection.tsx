@@ -125,6 +125,7 @@ export function WorkoutSection({
       {done && (
         <p className="complete" role="status">
           ✓ Workout complete — all {session.rounds} rounds done
+          <strong className="complete__kcal">≈ {kcalFor(session.id)} kcal burned</strong>
         </p>
       )}
 

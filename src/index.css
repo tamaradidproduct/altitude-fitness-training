@@ -215,3 +215,11 @@ main { display: grid; gap: 20px; }
 .settings__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .settings__field { display: grid; gap: 4px; font-size: 0.8rem; color: var(--muted); }
 .settings__field input, .settings__field select { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-height: 44px; width: 100%; }
+
+.complete { flex-wrap: wrap; gap: 4px 12px; }
+.complete__kcal { margin-left: auto; font-variant-numeric: tabular-nums; }
+.timer__summary { text-align: left; background: var(--surface-2); border-radius: 10px; padding: 10px 14px; display: grid; gap: 6px; }
+.timer__summary-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.timer__summary ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.9rem; }
+.timer__summary li { display: flex; justify-content: space-between; gap: 10px; font-variant-numeric: tabular-nums; }
+.timer__summary-total { margin: 0; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
