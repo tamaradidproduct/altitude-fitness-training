@@ -5,13 +5,15 @@ import { ExerciseList } from './ExerciseList'
 interface Props {
   step: number
   session: Session
+  /** Estimated calories for this routine. */
+  kcal?: number
   done: boolean
   onToggleDone: () => void
   children?: ReactNode
 }
 
 /** Core or Stretch + Mobility: a numbered, always-visible step in the daily flow. */
-export function RoutineSection({ step, session, done, onToggleDone }: Props) {
+export function RoutineSection({ step, session, kcal, done, onToggleDone, children }: Props) {
   return (
     <section className={`step kind--${session.kind}`} aria-labelledby={`step-${session.id}`}>
       <header className="step__head">
@@ -20,7 +22,10 @@ export function RoutineSection({ step, session, done, onToggleDone }: Props) {
         </span>
         <div className="step__title">
           <h2 id={`step-${session.id}`}>{session.title}</h2>
-          <p className="muted">{session.durationLabel}</p>
+          <p className="muted">
+            {session.durationLabel}
+            {kcal !== undefined && ` · ≈ ${kcal} kcal`}
+          </p>
         </div>
         <button
           type="button"
@@ -32,6 +37,7 @@ export function RoutineSection({ step, session, done, onToggleDone }: Props) {
         </button>
       </header>
       <ExerciseList session={session} />
+      {children}
     </section>
   )
 }

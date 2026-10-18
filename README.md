@@ -5,10 +5,13 @@ Tracker for the Altitude Attitude + ACECoLab pre-season program (Week 1: Base).
 ## Features
 - Weekly progress: 3 strength, 2 cardio, core + stretch days (goal 5–7)
 - Per-round set checklists with exercise how-to notes
-- Weeks 1–2, with a week switcher
+- All 12 weeks (Base, Peak, Send) with a week switcher; opens on your first unfinished week
+- Weeks 1–2 use the weekly PDFs; Weeks 3–12 come from the full-program matrix PDF (`src/data/laterWeeks.ts`)
 - One guided timer through Core → workout → Stretch; each step shows how to do the exercise
 - Two-sided exercises are done once per side within every set (left, then right)
 - 10s rest between timed exercises (skipped where the program has its own rest or recovery)
+- Optional core exercises (`optionalCore` in `src/data/program.ts`): off by default, added with one tap, remembered, and included in the timer. Each phase flags a few as *suggested* (`suggestedCore`) with recommended reps or time, plus an "Add suggested" button
+- Estimated calories for each section, today's session and the week (MET × personalised resting burn; defaults to a 155 lb, 38-year-old woman, editable under "Calorie estimate settings")
 - Keeps the screen on while the app is open (Screen Wake Lock API, where supported)
 - Daily core/stretch grid for the current calendar week
 - Progress saved in the browser (localStorage)

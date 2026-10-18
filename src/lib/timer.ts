@@ -53,26 +53,30 @@ export function buildPhases(session: Session): Phase[] {
         })
         return
       }
-      const sides = ex.perSide ? ['Left', 'Right'] : [null]
-      sides.forEach((side, sideIndex) => {
-        const label = side ? `${ex.name} — ${side}` : ex.name
-        if (ex.seconds === undefined) {
-          // Rep-based: the user taps Done at their own pace.
-          const detail = ex.perSide ? perSideAmount(ex.prescription) : ex.prescription
-          units.push({ work: { ...base, kind: 'work', label, seconds: 0, manual: true, detail } })
-          return
-        }
-        const last = sideIndex === sides.length - 1
-        const builtIn = ex.restSeconds
-        units.push({
-          work: { ...base, kind: 'work', label, seconds: ex.seconds },
-          rest: {
-            seconds: builtIn ?? AUTO_REST_SECONDS,
-            label: last ? 'Rest' : 'Switch sides',
-            auto: builtIn === undefined,
-          },
+      const repeats = ex.repeats ?? 1
+      for (let rep = 1; rep <= repeats; rep++) {
+        const sides = ex.perSide ? ['Left', 'Right'] : [null]
+        sides.forEach((side, sideIndex) => {
+          const name = repeats > 1 ? `${ex.name} · ${rep} of ${repeats}` : ex.name
+          const label = side ? `${name} — ${side}` : name
+          if (ex.seconds === undefined) {
+            // Rep-based: the user taps Done at their own pace.
+            const detail = ex.perSide ? perSideAmount(ex.prescription) : ex.prescription
+            units.push({ work: { ...base, kind: 'work', label, seconds: 0, manual: true, detail } })
+            return
+          }
+          const last = sideIndex === sides.length - 1
+          const builtIn = ex.restSeconds
+          units.push({
+            work: { ...base, kind: 'work', label, seconds: ex.seconds },
+            rest: {
+              seconds: builtIn ?? AUTO_REST_SECONDS,
+              label: last ? 'Rest' : 'Switch sides',
+              auto: builtIn === undefined,
+            },
+          })
         })
-      })
+      }
     })
   }
 

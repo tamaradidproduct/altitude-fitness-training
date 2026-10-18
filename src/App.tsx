@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { program, WEEKLY_GOALS, type Session } from './data/program'
+import { OPTIONAL_MET, optionalCore, program, suggestedCore, WEEKLY_GOALS, type Session, type WeekPhase } from './data/program'
 import {
   dailyCount,
   isoDate,
@@ -18,11 +18,15 @@ import {
   type Progress,
 } from './lib/progress'
 import { GuidedTimer } from './components/GuidedTimer'
+import { estimateSession, roundKcal } from './lib/calories'
+import { loadOptionalCore, loadProfile, saveOptionalCore, saveProfile } from './lib/preferences'
 import { useWakeLock } from './lib/useWakeLock'
+import { CalorieSettings } from './components/CalorieSettings'
+import { OptionalCorePicker } from './components/OptionalCorePicker'
 import { RoutineSection } from './components/RoutineSection'
 import { WorkoutSection } from './components/WorkoutSection'
 
-const pdfUrl = (week: number) => `${import.meta.env.BASE_URL}pdf/week-${week}.pdf`
+const pdfUrl = (path: string) => `${import.meta.env.BASE_URL}${path}`
 
 const DAILY_ROWS: { part: DailyPart; label: string }[] = [
   { part: 'core', label: 'Core' },
@@ -30,25 +34,35 @@ const DAILY_ROWS: { part: DailyPart; label: string }[] = [
   { part: 'stretch', label: 'Stretch' },
 ]
 const WEEK_KEY = 'strength-to-snow:week:v1'
-const latestWeek = program.weeks[program.weeks.length - 1].number
+
+/** The first week that still has a workout to do (the last week once everything is done). */
+function currentWeek(progress: Progress): number {
+  const open = program.weeks.find((w) => w.workouts.some((x) => !progress.completed[sessionKey(w.number, x.id)]))
+  return (open ?? program.weeks[program.weeks.length - 1]).number
+}
 
 function loadWeek(): number {
   try {
     const saved = Number(localStorage.getItem(WEEK_KEY))
-    return program.weeks.some((w) => w.number === saved) ? saved : latestWeek
+    if (program.weeks.some((w) => w.number === saved)) return saved
   } catch {
-    return latestWeek
+    // Fall through to the default.
   }
+  return currentWeek(loadProgress())
 }
 
+const PHASES: WeekPhase[] = ['Base', 'Peak', 'Send']
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress)
   const [weekNumber, setWeekNumber] = useState(loadWeek)
   const [timerOpen, setTimerOpen] = useState(false)
+  const [profile, setProfile] = useState(loadProfile)
+  const [extraCore, setExtraCore] = useState<string[]>(loadOptionalCore)
 
   useWakeLock()
+
 
   useEffect(() => {
     saveProgress(progress)
@@ -67,7 +81,8 @@ export default function App() {
   const dates = weekDates(now).map(isoDate)
 
   const keyOf = (id: string) => sessionKey(week.number, id)
-  const completedOn = (id: string) => progress.completed[keyOf(id)]
+  const completedIn = (weekNo: number, id: string) => progress.completed[sessionKey(weekNo, id)]
+  const completedOn = (id: string) => completedIn(week.number, id)
 
   // Per week: the workout the user picked, else the first one not done when the app opened.
   const [picked, setPicked] = useState<Record<number, string>>({})
@@ -82,8 +97,44 @@ export default function App() {
   })
   const selected =
     week.workouts.find((w) => w.id === (picked[week.number] ?? defaults[week.number])) ?? week.workouts[0]
-  const { core, stretch } = week
+  const { stretch } = week
+  // Selected optional exercises follow the program's core moves, in list order.
+  const suggested = suggestedCore[week.phase]
+  const extras = optionalCore
+    .filter((ex) => extraCore.includes(ex.name))
+    .map((ex) => ({ ...ex, ...suggested[ex.name], met: OPTIONAL_MET[ex.group], optional: true }))
+  const core: Session = {
+    ...week.core,
+    durationLabel: extras.length > 0 ? `5 min + ${extras.length} optional` : week.core.durationLabel,
+    exercises: [...week.core.exercises, ...extras],
+  }
   const flow: Session[] = [core, selected, stretch]
+  const addSuggested = () =>
+    setExtraCore((cur) => {
+      const next = [...cur, ...Object.keys(suggested).filter((n) => !cur.includes(n))]
+      saveOptionalCore(next)
+      return next
+    })
+  const kcalOf = (session: Session) => estimateSession(session, week.number, profile).kcal
+  const coreKcal = kcalOf(core)
+  const stretchKcal = kcalOf(stretch)
+  const selectedKcal = roundKcal(kcalOf(selected))
+  // Sum of the rounded parts so the session total matches the breakdown shown when it finishes.
+  const flowKcal = roundKcal(coreKcal) + selectedKcal + roundKcal(stretchKcal)
+  const weekKcal =
+    week.workouts.reduce((sum, w) => sum + (completedOn(w.id) ? kcalOf(w) : 0), 0) +
+    dailyCount(progress, dates, 'core') * coreKcal +
+    dailyCount(progress, dates, 'stretch') * stretchKcal
+  const updateProfile = (next: typeof profile) => {
+    setProfile(next)
+    saveProfile(next)
+  }
+  const toggleExtra = (name: string) =>
+    setExtraCore((cur) => {
+      const next = cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name]
+      saveOptionalCore(next)
+      return next
+    })
 
   const dailyDone = (part: DailyPart) => Boolean(progress.daily[today]?.[part])
 
@@ -123,29 +174,36 @@ export default function App() {
         <div>
           <h1>{program.title}</h1>
           <p className="masthead__sub">
-            Week {week.number}: {week.phase} — {week.theme}
+            Week {week.number}: {week.phase}{week.theme ? ` — ${week.theme}` : ''}
           </p>
         </div>
       </header>
 
       {program.weeks.length > 1 && (
-        <div className="weeks" role="tablist" aria-label="Program week">
-          {program.weeks.map((w) => (
-            <button
-              key={w.number}
-              type="button"
-              role="tab"
-              aria-selected={w.number === week.number}
-              className={`tab ${w.number === week.number ? 'tab--active' : ''}`}
-              onClick={() => {
-                setWeekNumber(w.number)
-                setTimerOpen(false)
-              }}
-            >
-              Week {w.number}
-            </button>
-          ))}
-        </div>
+        <label className="week-picker">
+          <span className="week-picker__label">Week</span>
+          <select
+            value={week.number}
+            onChange={(e) => {
+              setWeekNumber(Number(e.target.value))
+              setTimerOpen(false)
+            }}
+          >
+            {PHASES.map((phase) => {
+              const weeks = program.weeks.filter((w) => w.phase === phase)
+              return (
+                <optgroup key={phase} label={`${phase} · Weeks ${weeks[0].number}–${weeks[weeks.length - 1].number}`}>
+                  {weeks.map((w) => (
+                    <option key={w.number} value={w.number}>
+                      Week {w.number}
+                      {w.workouts.every((x) => completedIn(w.number, x.id)) ? ' ✓' : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )
+            })}
+          </select>
+        </label>
       )}
 
       <main key={week.number}>
@@ -163,6 +221,11 @@ export default function App() {
             </div>
           ))}
         </section>
+
+        <p className="week-kcal">
+          Estimated calories this week: <strong>≈ {roundKcal(weekKcal)} kcal</strong>
+          <span className="muted"> · completed workouts plus core and stretch days</span>
+        </p>
 
         <section className="card">
           <div className="card__head">
@@ -214,12 +277,21 @@ export default function App() {
           <div className="card__head">
             <h2>Today's session</h2>
             <p className="muted">
-              Core → {selected.nickname} → Stretch + Mobility · about 30 min
+              Core → {selected.nickname} → Stretch + Mobility · about 30 min · ≈ {flowKcal} kcal
             </p>
           </div>
           {timerOpen ? (
             <>
-              <GuidedTimer key={`${week.number}-${selected.id}`} sessions={flow} onFinish={finishFlow} />
+              <GuidedTimer
+                key={`${week.number}-${selected.id}-${extras.length}-${extras.map((e) => e.name).join()}`}
+                sessions={flow}
+                onFinish={finishFlow}
+                summary={[
+                  { label: 'Core', kcal: roundKcal(coreKcal) },
+                  { label: selected.nickname ?? selected.title, kcal: selectedKcal },
+                  { label: 'Stretch + Mobility', kcal: roundKcal(stretchKcal) },
+                ]}
+              />
               <button type="button" className="link-btn" onClick={() => setTimerOpen(false)}>
                 Close timer
               </button>
@@ -233,14 +305,25 @@ export default function App() {
 
         <RoutineSection
           step={1}
-          session={week.core}
+          session={core}
+          kcal={roundKcal(coreKcal)}
           done={dailyDone('core')}
           onToggleDone={() => setProgress((p) => toggleDaily(p, today, 'core'))}
-        />
+        >
+          <OptionalCorePicker
+            options={optionalCore}
+            selected={extraCore}
+            suggested={suggested}
+            phase={week.phase}
+            onToggle={toggleExtra}
+            onAddSuggested={addSuggested}
+          />
+        </RoutineSection>
 
         <WorkoutSection
           step={2}
           workouts={week.workouts}
+          kcalFor={(id) => roundKcal(kcalOf(workoutById(id)))}
           selectedId={selected.id}
           onSelect={(id) => setPicked((p) => ({ ...p, [week.number]: id }))}
           checksFor={(id) => progress.checks[keyOf(id)] ?? []}
@@ -252,13 +335,26 @@ export default function App() {
         <RoutineSection
           step={3}
           session={week.stretch}
+          kcal={roundKcal(stretchKcal)}
           done={dailyDone('stretch')}
           onToggleDone={() => setProgress((p) => toggleDaily(p, today, 'stretch'))}
         />
 
-        <a className="btn btn--ghost btn--block pdf-link" href={pdfUrl(week.number)} target="_blank" rel="noreferrer">
-          📄 View original Week {week.number} PDF
+        {week.pdf && (
+          <a className="btn btn--ghost btn--block pdf-link" href={pdfUrl(week.pdf)} target="_blank" rel="noreferrer">
+            📄 View original Week {week.number} PDF
+          </a>
+        )}
+        <a
+          className="btn btn--ghost btn--block pdf-link"
+          href={pdfUrl('pdf/full-program.pdf')}
+          target="_blank"
+          rel="noreferrer"
+        >
+          📄 View full 12-week program PDF
         </a>
+
+        <CalorieSettings profile={profile} onChange={updateProfile} />
 
         <p className="footer">
           Each day: Core (5 min) → Strength or Cardio (15–20 min) → Stretch (5 min) ≈ 30 min.

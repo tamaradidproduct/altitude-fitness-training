@@ -6,6 +6,8 @@ import { ExerciseList } from './ExerciseList'
 interface Props {
   step: number
   workouts: Session[]
+  /** Estimated calories for a workout, by id. */
+  kcalFor: (sessionId: string) => number
   selectedId: string
   onSelect: (id: string) => void
   checksFor: (sessionId: string) => string[]
@@ -17,6 +19,7 @@ interface Props {
 export function WorkoutSection({
   step,
   workouts,
+  kcalFor,
   selectedId,
   onSelect,
   checksFor,
@@ -39,7 +42,7 @@ export function WorkoutSection({
         </span>
         <div className="step__title">
           <h2 id="step-workout">Strength or Cardio</h2>
-          <p className="muted">{session.durationLabel} · pick today's workout</p>
+          <p className="muted">{session.durationLabel} · ≈ {kcalFor(session.id)} kcal · pick today's workout</p>
         </div>
       </header>
 
@@ -122,6 +125,7 @@ export function WorkoutSection({
       {done && (
         <p className="complete" role="status">
           ✓ Workout complete — all {session.rounds} rounds done
+          <strong className="complete__kcal">≈ {kcalFor(session.id)} kcal burned</strong>
         </p>
       )}
 
