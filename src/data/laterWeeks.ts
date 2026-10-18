@@ -10,7 +10,8 @@ import { describe } from './descriptions'
  * - "SL" and "DB" are spelled out (Single-Leg, Dumbbell).
  * - Stretches are 30 sec each side when static and one-sided, and a single 60 sec
  *   block when the PDF describes a flow or dynamic movement.
- * - "DB Press" in Strength A is treated as a chest press.
+ * - "DB Press" in Strength A is treated as a chest press, and "Dumbbell" is added to
+ *   "RDL" and "Row" where the PDF leaves it out.
  */
 
 const phaseOf = (n: number): WeekPhase => (n <= 4 ? 'Base' : n <= 8 ? 'Peak' : 'Send')
@@ -160,7 +161,7 @@ const SPECS: Record<number, Spec> = {
       'Quick Squats',
       'Reverse Lunge + Knee Drive',
       'Walkout + Push-Up',
-      'Standing Mountain Climber',
+      'Standing Mountain Climbers',
       'Burpee',
     ],
   },

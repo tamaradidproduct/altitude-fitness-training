@@ -1,8 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
 
 const STORE = 'strength-to-snow:progress:v1'
+
+const pickWeek = (n: number) =>
+  fireEvent.change(screen.getByRole('combobox', { name: 'Week' }), { target: { value: String(n) } })
 
 describe('App', () => {
   beforeEach(() => {
@@ -26,6 +29,15 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Cardio 1' }))
     expect(screen.getByRole('heading', { name: 'Earn Your Turns' })).toBeInTheDocument()
     expect(screen.getByText('March in Place', { selector: '.exercise__name span' })).toBeInTheDocument()
+  })
+
+  it('uses the full program PDF\'s Strength B and C names', () => {
+    render(<App />)
+    expect(screen.getByRole('tab', { name: 'Strength B' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Strength B' }))
+    expect(screen.getByRole('heading', { name: 'All Mountain Muscle' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Strength C' }))
+    expect(screen.getByRole('heading', { name: 'Last Chair' })).toBeInTheDocument()
   })
 
   it('links to the original PDF', () => {
@@ -86,16 +98,17 @@ describe('App', () => {
   it('starts on the first unfinished week and lets you switch between all 12', () => {
     localStorage.removeItem('strength-to-snow:week:v1')
     render(<App />)
-    expect(screen.getAllByRole('tab', { name: /^Week \d+$/ })).toHaveLength(12)
-    expect(screen.getByRole('tab', { name: 'Week 1', selected: true })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: 'Week 2' }))
+    const picker = screen.getByRole('combobox', { name: 'Week' })
+    expect(within(picker).getAllByRole('option')).toHaveLength(12)
+    expect(picker).toHaveValue('1')
+    pickWeek(2)
     expect(screen.getByText('Bird Dog Crunch')).toBeInTheDocument()
     expect(screen.getByText('Week 2: Base — Build the Foundation')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /View original Week 2 PDF/ })).toHaveAttribute(
       'href',
       expect.stringMatching(/pdf\/week-2\.pdf$/),
     )
-    fireEvent.click(screen.getByRole('tab', { name: 'Week 1' }))
+    pickWeek(1)
     expect(screen.getByText('Bird Dog')).toBeInTheDocument()
     expect(localStorage.getItem('strength-to-snow:week:v1')).toBe('1')
   })
@@ -107,12 +120,19 @@ describe('App', () => {
     )
     localStorage.setItem('strength-to-snow:progress:v1', JSON.stringify({ completed, checks: {}, daily: {} }))
     render(<App />)
-    expect(screen.getByRole('tab', { name: 'Week 2', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Week' })).toHaveValue('2')
+    expect(screen.getByRole('option', { name: 'Week 1 ✓' })).toBeInTheDocument()
+  })
+
+  it('groups weeks by phase in the dropdown', () => {
+    render(<App />)
+    for (const g of ['Base · Weeks 1–4', 'Peak · Weeks 5–8', 'Send · Weeks 9–12'])
+      expect(screen.getByRole('group', { name: g })).toBeInTheDocument()
   })
 
   it('shows later weeks, their phase, and only the full-program PDF where there is no weekly PDF', () => {
     render(<App />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Week 6' }))
+    pickWeek(6)
     expect(screen.getByText('Week 6: Peak')).toBeInTheDocument()
     expect(screen.getByText('Straight-Arm Plank')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /View original Week 6 PDF/ })).not.toBeInTheDocument()
@@ -128,7 +148,7 @@ describe('App', () => {
     render(<App />)
     for (const r of [1, 2, 3]) fireEvent.click(screen.getByRole('button', { name: `Mark round ${r} complete` }))
     expect(screen.getByText('Strength').previousSibling).toHaveTextContent('1/3')
-    fireEvent.click(screen.getByRole('tab', { name: 'Week 2' }))
+    pickWeek(2)
     expect(screen.getByText('Strength').previousSibling).toHaveTextContent('0/3')
     expect(screen.queryByText(/Workout complete/)).not.toBeInTheDocument()
   })

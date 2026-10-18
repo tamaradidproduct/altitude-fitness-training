@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { optionalCore, program, suggestedCore, WEEKLY_GOALS, type Session } from './data/program'
+import { useEffect, useState } from 'react'
+import { optionalCore, program, suggestedCore, WEEKLY_GOALS, type Session, type WeekPhase } from './data/program'
 import {
   dailyCount,
   isoDate,
@@ -49,21 +49,17 @@ function loadWeek(): number {
   return currentWeek(loadProgress())
 }
 
+const PHASES: WeekPhase[] = ['Base', 'Peak', 'Send']
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress)
   const [weekNumber, setWeekNumber] = useState(loadWeek)
   const [timerOpen, setTimerOpen] = useState(false)
-  const activeTab = useRef<HTMLButtonElement>(null)
   const [extraCore, setExtraCore] = useState<string[]>(loadOptionalCore)
 
   useWakeLock()
 
-  // Keep the selected week visible in the scrolling week bar.
-  useEffect(() => {
-    activeTab.current?.scrollIntoView?.({ inline: 'center', block: 'nearest' })
-  }, [weekNumber])
 
   useEffect(() => {
     saveProgress(progress)
@@ -82,7 +78,8 @@ export default function App() {
   const dates = weekDates(now).map(isoDate)
 
   const keyOf = (id: string) => sessionKey(week.number, id)
-  const completedOn = (id: string) => progress.completed[keyOf(id)]
+  const completedIn = (weekNo: number, id: string) => progress.completed[sessionKey(weekNo, id)]
+  const completedOn = (id: string) => completedIn(week.number, id)
 
   // Per week: the workout the user picked, else the first one not done when the app opened.
   const [picked, setPicked] = useState<Record<number, string>>({})
@@ -166,24 +163,30 @@ export default function App() {
       </header>
 
       {program.weeks.length > 1 && (
-        <div className="weeks" role="tablist" aria-label="Program week">
-          {program.weeks.map((w) => (
-            <button
-              key={w.number}
-              ref={w.number === week.number ? activeTab : undefined}
-              type="button"
-              role="tab"
-              aria-selected={w.number === week.number}
-              className={`tab tab--week phase--${w.phase.toLowerCase()} ${w.number === week.number ? 'tab--active' : ''}`}
-              onClick={() => {
-                setWeekNumber(w.number)
-                setTimerOpen(false)
-              }}
-            >
-              Week {w.number}
-            </button>
-          ))}
-        </div>
+        <label className="week-picker">
+          <span className="week-picker__label">Week</span>
+          <select
+            value={week.number}
+            onChange={(e) => {
+              setWeekNumber(Number(e.target.value))
+              setTimerOpen(false)
+            }}
+          >
+            {PHASES.map((phase) => {
+              const weeks = program.weeks.filter((w) => w.phase === phase)
+              return (
+                <optgroup key={phase} label={`${phase} · Weeks ${weeks[0].number}–${weeks[weeks.length - 1].number}`}>
+                  {weeks.map((w) => (
+                    <option key={w.number} value={w.number}>
+                      Week {w.number}
+                      {w.workouts.every((x) => completedIn(w.number, x.id)) ? ' ✓' : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )
+            })}
+          </select>
+        </label>
       )}
 
       <main key={week.number}>

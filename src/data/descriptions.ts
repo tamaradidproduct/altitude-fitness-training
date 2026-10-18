@@ -268,6 +268,8 @@ export const DESCRIPTIONS: Record<string, string> = {
     'Step one foot back into a reverse lunge and reach both arms overhead as you stand. Alternate legs in a steady rhythm.',
   'Standing Mountain Climber':
     'Stand tall with your hands out in front of you. Drive your knees toward your chest one at a time in a quick running motion, pulling your hands down toward each knee.',
+  'Standing Mountain Climbers':
+    'Stand tall with your hands out in front of you. Drive your knees toward your chest one at a time in a quick running motion, pulling your hands down toward each knee.',
   Burpee:
     'Squat down and place your hands on the floor. Step or jump your feet back into a plank, bring them forward again, and stand up or jump.',
   'Squat + Alternating Knee Drive':
