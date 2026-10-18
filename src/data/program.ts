@@ -657,6 +657,13 @@ export const optionalCore: OptionalExercise[] = [
     description:
       'Lie on your back with your knees bent and feet flat. Rest a dumbbell across your hips and hold it steady with both hands. Press through your feet and squeeze your glutes to lift your hips until your shoulders, hips, and knees form a straight line. Lower with control without arching your lower back.',
   },
+  {
+    group: 'Weighted',
+    name: 'Weighted Roll-Up',
+    prescription: '8 reps',
+    description:
+      'Sit tall with your legs extended, holding a single dumbbell or kettlebell at your chest. Slowly roll down one vertebra at a time onto your back, then articulate back up to a sitting position, reaching the weight toward your toes or overhead.',
+  },
 
   // Pilates: the classic abdominal series of five, plus teaser variations.
   {

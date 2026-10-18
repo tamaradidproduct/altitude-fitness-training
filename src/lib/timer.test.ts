@@ -143,6 +143,7 @@ describe('optional core library', () => {
       'Weighted Russian Twist',
       'Weighted Plank Drag',
       'Weighted Glute Bridge',
+      'Weighted Roll-Up',
       'Single Leg Stretch',
       'Double Leg Stretch',
       'Criss-Cross',
