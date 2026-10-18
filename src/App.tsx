@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { optionalCore, program, WEEKLY_GOALS, type Session } from './data/program'
+import { useEffect, useRef, useState } from 'react'
+import { optionalCore, program, suggestedCore, WEEKLY_GOALS, type Session } from './data/program'
 import {
   dailyCount,
   isoDate,
@@ -24,7 +24,7 @@ import { OptionalCorePicker } from './components/OptionalCorePicker'
 import { RoutineSection } from './components/RoutineSection'
 import { WorkoutSection } from './components/WorkoutSection'
 
-const pdfUrl = (week: number) => `${import.meta.env.BASE_URL}pdf/week-${week}.pdf`
+const pdfUrl = (path: string) => `${import.meta.env.BASE_URL}${path}`
 
 const DAILY_ROWS: { part: DailyPart; label: string }[] = [
   { part: 'core', label: 'Core' },
@@ -32,15 +32,21 @@ const DAILY_ROWS: { part: DailyPart; label: string }[] = [
   { part: 'stretch', label: 'Stretch' },
 ]
 const WEEK_KEY = 'strength-to-snow:week:v1'
-const latestWeek = program.weeks[program.weeks.length - 1].number
+
+/** The first week that still has a workout to do (the last week once everything is done). */
+function currentWeek(progress: Progress): number {
+  const open = program.weeks.find((w) => w.workouts.some((x) => !progress.completed[sessionKey(w.number, x.id)]))
+  return (open ?? program.weeks[program.weeks.length - 1]).number
+}
 
 function loadWeek(): number {
   try {
     const saved = Number(localStorage.getItem(WEEK_KEY))
-    return program.weeks.some((w) => w.number === saved) ? saved : latestWeek
+    if (program.weeks.some((w) => w.number === saved)) return saved
   } catch {
-    return latestWeek
+    // Fall through to the default.
   }
+  return currentWeek(loadProgress())
 }
 
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -49,9 +55,15 @@ export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress)
   const [weekNumber, setWeekNumber] = useState(loadWeek)
   const [timerOpen, setTimerOpen] = useState(false)
+  const activeTab = useRef<HTMLButtonElement>(null)
   const [extraCore, setExtraCore] = useState<string[]>(loadOptionalCore)
 
   useWakeLock()
+
+  // Keep the selected week visible in the scrolling week bar.
+  useEffect(() => {
+    activeTab.current?.scrollIntoView?.({ inline: 'center', block: 'nearest' })
+  }, [weekNumber])
 
   useEffect(() => {
     saveProgress(progress)
@@ -87,13 +99,22 @@ export default function App() {
     week.workouts.find((w) => w.id === (picked[week.number] ?? defaults[week.number])) ?? week.workouts[0]
   const { stretch } = week
   // Selected optional exercises follow the program's core moves, in list order.
-  const extras = optionalCore.filter((ex) => extraCore.includes(ex.name)).map((ex) => ({ ...ex, optional: true }))
+  const suggested = suggestedCore[week.phase]
+  const extras = optionalCore
+    .filter((ex) => extraCore.includes(ex.name))
+    .map((ex) => ({ ...ex, ...suggested[ex.name], optional: true }))
   const core: Session = {
     ...week.core,
     durationLabel: extras.length > 0 ? `5 min + ${extras.length} optional` : week.core.durationLabel,
     exercises: [...week.core.exercises, ...extras],
   }
   const flow: Session[] = [core, selected, stretch]
+  const addSuggested = () =>
+    setExtraCore((cur) => {
+      const next = [...cur, ...Object.keys(suggested).filter((n) => !cur.includes(n))]
+      saveOptionalCore(next)
+      return next
+    })
   const toggleExtra = (name: string) =>
     setExtraCore((cur) => {
       const next = cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name]
@@ -139,7 +160,7 @@ export default function App() {
         <div>
           <h1>{program.title}</h1>
           <p className="masthead__sub">
-            Week {week.number}: {week.phase} — {week.theme}
+            Week {week.number}: {week.phase}{week.theme ? ` — ${week.theme}` : ''}
           </p>
         </div>
       </header>
@@ -149,10 +170,11 @@ export default function App() {
           {program.weeks.map((w) => (
             <button
               key={w.number}
+              ref={w.number === week.number ? activeTab : undefined}
               type="button"
               role="tab"
               aria-selected={w.number === week.number}
-              className={`tab ${w.number === week.number ? 'tab--active' : ''}`}
+              className={`tab tab--week phase--${w.phase.toLowerCase()} ${w.number === week.number ? 'tab--active' : ''}`}
               onClick={() => {
                 setWeekNumber(w.number)
                 setTimerOpen(false)
@@ -253,7 +275,14 @@ export default function App() {
           done={dailyDone('core')}
           onToggleDone={() => setProgress((p) => toggleDaily(p, today, 'core'))}
         >
-          <OptionalCorePicker options={optionalCore} selected={extraCore} onToggle={toggleExtra} />
+          <OptionalCorePicker
+            options={optionalCore}
+            selected={extraCore}
+            suggested={suggested}
+            phase={week.phase}
+            onToggle={toggleExtra}
+            onAddSuggested={addSuggested}
+          />
         </RoutineSection>
 
         <WorkoutSection
@@ -274,8 +303,18 @@ export default function App() {
           onToggleDone={() => setProgress((p) => toggleDaily(p, today, 'stretch'))}
         />
 
-        <a className="btn btn--ghost btn--block pdf-link" href={pdfUrl(week.number)} target="_blank" rel="noreferrer">
-          📄 View original Week {week.number} PDF
+        {week.pdf && (
+          <a className="btn btn--ghost btn--block pdf-link" href={pdfUrl(week.pdf)} target="_blank" rel="noreferrer">
+            📄 View original Week {week.number} PDF
+          </a>
+        )}
+        <a
+          className="btn btn--ghost btn--block pdf-link"
+          href={pdfUrl('pdf/full-program.pdf')}
+          target="_blank"
+          rel="noreferrer"
+        >
+          📄 View full 12-week program PDF
         </a>
 
         <p className="footer">

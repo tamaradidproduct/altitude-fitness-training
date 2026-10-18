@@ -83,10 +83,12 @@ describe('App', () => {
     expect(timer).toHaveTextContent('Step 1 of')
   })
 
-  it('defaults to the latest week and lets you switch between weeks', () => {
+  it('starts on the first unfinished week and lets you switch between all 12', () => {
     localStorage.removeItem('strength-to-snow:week:v1')
     render(<App />)
-    expect(screen.getByRole('tab', { name: 'Week 2', selected: true })).toBeInTheDocument()
+    expect(screen.getAllByRole('tab', { name: /^Week \d+$/ })).toHaveLength(12)
+    expect(screen.getByRole('tab', { name: 'Week 1', selected: true })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Week 2' }))
     expect(screen.getByText('Bird Dog Crunch')).toBeInTheDocument()
     expect(screen.getByText('Week 2: Base — Build the Foundation')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /View original Week 2 PDF/ })).toHaveAttribute(
@@ -96,6 +98,30 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Week 1' }))
     expect(screen.getByText('Bird Dog')).toBeInTheDocument()
     expect(localStorage.getItem('strength-to-snow:week:v1')).toBe('1')
+  })
+
+  it('opens on the next week once every workout in earlier weeks is done', () => {
+    localStorage.removeItem('strength-to-snow:week:v1')
+    const completed = Object.fromEntries(
+      ['strength-a', 'strength-b', 'strength-c', 'cardio-1', 'cardio-2'].map((id) => [`1:${id}`, '2026-10-05']),
+    )
+    localStorage.setItem('strength-to-snow:progress:v1', JSON.stringify({ completed, checks: {}, daily: {} }))
+    render(<App />)
+    expect(screen.getByRole('tab', { name: 'Week 2', selected: true })).toBeInTheDocument()
+  })
+
+  it('shows later weeks, their phase, and only the full-program PDF where there is no weekly PDF', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Week 6' }))
+    expect(screen.getByText('Week 6: Peak')).toBeInTheDocument()
+    expect(screen.getByText('Straight-Arm Plank')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /View original Week 6 PDF/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /View full 12-week program PDF/ })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/pdf\/full-program\.pdf$/),
+    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Cardio 1' }))
+    expect(screen.getByText(/5 exercises × 3 rounds · 30s work \/ 30s recovery/)).toBeInTheDocument()
   })
 
   it('tracks each week\'s workouts separately', () => {
@@ -163,6 +189,34 @@ describe('App', () => {
       render(<App />)
       expect(screen.getByText('1 added')).toBeInTheDocument()
       expect(JSON.parse(localStorage.getItem('strength-to-snow:optional-core:v1')!)).toEqual(['Side Plank'])
+    })
+
+    it('flags suggested exercises for the week\'s phase but never adds them on its own', () => {
+      render(<App />)
+      open()
+      expect(screen.getByText(/Suggested for Base weeks/)).toBeInTheDocument()
+      expect(screen.getAllByText('Suggested')).toHaveLength(3)
+      expect(screen.getByText('none added')).toBeInTheDocument()
+    })
+
+    it('adds all suggested exercises with one tap, using the suggested reps', () => {
+      render(<App />)
+      open()
+      fireEvent.click(screen.getByRole('button', { name: /Add suggested \(3\)/ }))
+      expect(screen.getByText('3 added')).toBeInTheDocument()
+      for (const n of ['Dead Bug', 'Teaser Prep', 'Single Leg Stretch'])
+        expect(screen.getByRole('button', { name: `Remove ${n}` })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '✓ Suggested added' })).toBeDisabled()
+    })
+
+    it('suggests different exercises, with progressed reps or time, in later phases', () => {
+      localStorage.setItem('strength-to-snow:week:v1', '9')
+      render(<App />)
+      open()
+      expect(screen.getByText(/Suggested for Send weeks/)).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Add Hollow Body Hold' }))
+      // The suggested time for Send weeks (30 sec) replaces the default (20 sec) in the core list.
+      expect(screen.getAllByText('30 sec hold').length).toBeGreaterThan(0)
     })
 
     it('are included in the guided timer only when selected', () => {

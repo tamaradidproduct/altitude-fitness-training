@@ -198,3 +198,16 @@ main { display: grid; gap: 20px; }
 .optional__groups { display: grid; gap: 14px; }
 .optional__group { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin: 4px 0 8px; }
 .optional__group .muted { font-weight: 500; text-transform: none; letter-spacing: 0; }
+
+/* 12-week bar and suggested core */
+.weeks { overflow-x: auto; scrollbar-width: none; }
+.weeks::-webkit-scrollbar { display: none; }
+.tab--week { flex: none; padding: 8px 14px; white-space: nowrap; border-bottom: 3px solid transparent; }
+.phase--base { --phase-c: var(--stretch); }
+.phase--peak { --phase-c: var(--strength); }
+.phase--send { --phase-c: var(--cardio); }
+.tab--week { border-bottom-color: var(--phase-c); }
+.badge--suggested { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); color: var(--accent); }
+.optional__suggest { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border-radius: var(--radius); padding: 10px 14px; font-size: 0.85rem; }
+.optional__suggest p { margin: 0; }
+.days th[scope='row'] { width: 96px; padding-right: 14px; }

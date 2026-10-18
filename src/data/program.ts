@@ -1,3 +1,5 @@
+import { buildLaterWeeks } from './laterWeeks'
+
 export type SessionKind = 'strength' | 'cardio' | 'core' | 'stretch'
 
 export interface Exercise {
@@ -13,6 +15,8 @@ export interface Exercise {
   perSide?: boolean
   /** Added by the user from the optional list rather than part of the program. */
   optional?: boolean
+  /** Hold repeated this many times with rest between (e.g. "30 sec ×2"). */
+  repeats?: number
 }
 
 export interface Session {
@@ -32,10 +36,15 @@ export interface Session {
   transitionSeconds?: number
 }
 
+export type WeekPhase = 'Base' | 'Peak' | 'Send'
+
 export interface Week {
   number: number
-  phase: string
-  theme: string
+  phase: WeekPhase
+  /** Subtitle from the program PDF, when it gives one. */
+  theme?: string
+  /** Published path of this week's own PDF, when one exists. */
+  pdf?: string
   workouts: Session[]
   core: Session
   stretch: Session
@@ -140,6 +149,7 @@ const cardioCooldown = [
 
 export const week1: Week = {
   number: 1,
+  pdf: 'pdf/week-1.pdf',
   phase: 'Base',
   theme: 'Build the Foundation',
   core,
@@ -485,6 +495,7 @@ const week2StrengthA: Session = (() => {
 
 export const week2: Week = {
   number: 2,
+  pdf: 'pdf/week-2.pdf',
   phase: 'Base',
   theme: 'Build the Foundation',
   core: week2Core,
@@ -603,7 +614,7 @@ export const week2: Week = {
 export const program = {
   title: 'From Strength to Snow',
   subtitle: 'Altitude Attitude + ACECoLab Pre-Season Fitness Training Program',
-  weeks: [week1, week2],
+  weeks: [week1, week2, ...buildLaterWeeks([week1, week2])],
 }
 
 export type OptionalGroup = 'Weighted' | 'Pilates' | 'Bodyweight'
@@ -724,6 +735,36 @@ export const optionalCore: OptionalExercise[] = [
       'Lie on your back with your legs extended and your arms overhead. Roll up and lift your legs at the same time to balance in a V shape on your sit bones, arms reaching toward your toes. Roll back down slowly. Bend your knees to make it easier.',
   },
 
+  {
+    group: 'Pilates',
+    name: 'Teaser with Leg Lowers',
+    prescription: '6 reps',
+    description:
+      'Roll up into a teaser, balancing in a V on your sit bones with your arms reaching toward your toes. Slowly lower both legs a few inches, then lift them back to the V without letting your chest collapse. Roll down after the last rep. Bend your knees to make it easier.',
+  },
+  {
+    group: 'Pilates',
+    name: 'Teaser Hold',
+    prescription: '20 sec hold',
+    seconds: 20,
+    description:
+      'Roll up into a teaser and balance in a V on your sit bones with your legs lifted and your arms reaching toward your toes. Keep your chest open and your spine long, and breathe steadily. Bend your knees to make it easier.',
+  },
+  {
+    group: 'Pilates',
+    name: 'Teaser with Twist',
+    prescription: '8 alternating',
+    description:
+      'Roll up into a teaser and balance in a V. Rotate your torso to one side, reaching your arms past your hip, then rotate to the other side. Keep your legs steady and turn from your ribs. Each side counts as one rep.',
+  },
+  {
+    group: 'Weighted',
+    name: 'Teaser with Weight',
+    prescription: '5 reps',
+    description:
+      'Lie on your back holding a light dumbbell at your chest. Roll up and lift your legs at the same time to balance in a V on your sit bones, extending the weight in front of you. Roll back down slowly. Use a light weight and bend your knees to make it easier.',
+  },
+
   // Bodyweight
   {
     group: 'Bodyweight',
@@ -767,6 +808,30 @@ export const optionalCore: OptionalExercise[] = [
       'Start in a high plank with your hands under your shoulders. Drive one knee toward your chest, then switch legs in a controlled rhythm. Keep your hips level and your core braced.',
   },
 ]
+
+/**
+ * Optional core exercises recommended for each phase, with the suggested
+ * reps or time. They are still optional and never added automatically: the
+ * picker flags them and offers a one-tap "add suggested". Each phase picks a
+ * few moves that build on the program's own core work without repeating it.
+ */
+export const suggestedCore: Record<WeekPhase, Record<string, Partial<Pick<Exercise, 'prescription' | 'seconds'>>>> = {
+  Base: {
+    'Dead Bug': { prescription: '8 each side' },
+    'Teaser Prep': { prescription: '6 reps' },
+    'Single Leg Stretch': { prescription: '10 alternating' },
+  },
+  Peak: {
+    'Teaser with Leg Lowers': { prescription: '6 reps' },
+    'Weighted Roll-Up': { prescription: '8 reps' },
+    'Dumbbell Woodchop': { prescription: '10 each side' },
+  },
+  Send: {
+    'Teaser with Twist': { prescription: '10 alternating' },
+    'Weighted Plank Drag': { prescription: '8 each side' },
+    'Hollow Body Hold': { prescription: '30 sec hold', seconds: 30 },
+  },
+}
 
 /** Weekly goals from the program overview. */
 export const WEEKLY_GOALS = { strength: 3, cardio: 2, dailyMin: 5, dailyMax: 7 }
