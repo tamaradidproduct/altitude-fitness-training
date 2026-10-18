@@ -17,6 +17,8 @@ export interface Exercise {
   optional?: boolean
   /** Hold repeated this many times with rest between (e.g. "30 sec ×2"). */
   repeats?: number
+  /** Effort override for calorie estimates, as a MET value. */
+  met?: number
 }
 
 export interface Session {
@@ -808,6 +810,9 @@ export const optionalCore: OptionalExercise[] = [
       'Start in a high plank with your hands under your shoulders. Drive one knee toward your chest, then switch legs in a controlled rhythm. Keep your hips level and your core braced.',
   },
 ]
+
+/** Effort of the optional core exercises, as METs, for calorie estimates. */
+export const OPTIONAL_MET: Record<OptionalGroup, number> = { Weighted: 4.5, Pilates: 3, Bodyweight: 3.8 }
 
 /**
  * Optional core exercises recommended for each phase, with the suggested

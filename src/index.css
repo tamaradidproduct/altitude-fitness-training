@@ -206,3 +206,12 @@ main { display: grid; gap: 20px; }
 .optional__suggest { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border-radius: var(--radius); padding: 10px 14px; font-size: 0.85rem; }
 .optional__suggest p { margin: 0; }
 .days th[scope='row'] { width: 96px; padding-right: 14px; }
+
+/* Calories */
+.week-kcal { margin: 0; font-size: 0.9rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+.settings { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.settings summary { cursor: pointer; font-weight: 600; }
+.settings__body { display: grid; gap: 10px; margin-top: 12px; }
+.settings__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.settings__field { display: grid; gap: 4px; font-size: 0.8rem; color: var(--muted); }
+.settings__field input, .settings__field select { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-height: 44px; width: 100%; }

@@ -12,6 +12,7 @@ describe('App', () => {
     localStorage.clear()
     localStorage.setItem('strength-to-snow:week:v1', '1')
     localStorage.removeItem('strength-to-snow:optional-core:v1')
+    localStorage.removeItem('strength-to-snow:profile:v1')
   })
 
   it('shows core, workout and stretch inline under the tracker', () => {
@@ -195,7 +196,7 @@ describe('App', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add Dead Bug' }))
       expect(screen.getByText('1 added')).toBeInTheDocument()
       expect(screen.getByText('Optional')).toBeInTheDocument()
-      expect(screen.getByText('5 min + 1 optional')).toBeInTheDocument()
+      expect(screen.getByText(/5 min \+ 1 optional/)).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: 'Remove Dead Bug' }))
       expect(screen.queryByText('Optional')).not.toBeInTheDocument()
       expect(screen.getByText('none added')).toBeInTheDocument()
@@ -251,5 +252,58 @@ describe('App', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove Side Plank' }))
       expect(steps()).toBe(before)
     })
+  })
+})
+
+describe('calorie estimates', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    localStorage.setItem('strength-to-snow:week:v1', '1')
+  })
+
+  const weeklyKcal = () => Number(/≈ (\d+) kcal/.exec(screen.getByText(/Estimated calories this week/).textContent!)![1])
+
+  it('shows estimates for the session, each section, and the week', () => {
+    render(<App />)
+    expect(screen.getByText(/about 30 min · ≈ \d+ kcal/)).toBeInTheDocument()
+    expect(screen.getAllByText(/ min · ≈ \d+ kcal/).length).toBeGreaterThanOrEqual(3)
+    expect(weeklyKcal()).toBe(0)
+  })
+
+  it('adds a completed workout and core/stretch days to the weekly estimate', () => {
+    render(<App />)
+    for (const r of [1, 2, 3]) fireEvent.click(screen.getByRole('button', { name: `Mark round ${r} complete` }))
+    const afterWorkout = weeklyKcal()
+    expect(afterWorkout).toBeGreaterThan(0)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mark done' })[0])
+    expect(weeklyKcal()).toBeGreaterThan(afterWorkout)
+  })
+
+  it('changes with your weight and is remembered', () => {
+    const first = render(<App />)
+    const before = Number(/≈ (\d+) kcal/.exec(screen.getByText(/about 30 min/).textContent!)![1])
+    fireEvent.click(screen.getByText('Calorie estimate settings'))
+    fireEvent.change(screen.getByLabelText('Weight (lb)'), { target: { value: '200' } })
+    const after = Number(/≈ (\d+) kcal/.exec(screen.getByText(/about 30 min/).textContent!)![1])
+    expect(after).toBeGreaterThan(before)
+    first.unmount()
+    render(<App />)
+    fireEvent.click(screen.getByText('Calorie estimate settings'))
+    expect(screen.getByLabelText('Weight (lb)')).toHaveValue(200)
+  })
+
+  it('ignores out-of-range settings', () => {
+    render(<App />)
+    fireEvent.click(screen.getByText('Calorie estimate settings'))
+    fireEvent.change(screen.getByLabelText('Age'), { target: { value: '500' } })
+    expect(JSON.parse(localStorage.getItem('strength-to-snow:profile:v1') ?? '{"ageYears":38}').ageYears).toBe(38)
+  })
+
+  it('defaults to a 155 lb, 38-year-old woman', () => {
+    render(<App />)
+    fireEvent.click(screen.getByText('Calorie estimate settings'))
+    expect(screen.getByLabelText('Weight (lb)')).toHaveValue(155)
+    expect(screen.getByLabelText('Age')).toHaveValue(38)
+    expect(screen.getByLabelText('Sex')).toHaveValue('female')
   })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { optionalCore, program, suggestedCore, WEEKLY_GOALS, type Session, type WeekPhase } from './data/program'
+import { OPTIONAL_MET, optionalCore, program, suggestedCore, WEEKLY_GOALS, type Session, type WeekPhase } from './data/program'
 import {
   dailyCount,
   isoDate,
@@ -18,8 +18,10 @@ import {
   type Progress,
 } from './lib/progress'
 import { GuidedTimer } from './components/GuidedTimer'
-import { loadOptionalCore, saveOptionalCore } from './lib/preferences'
+import { estimateSession, roundKcal } from './lib/calories'
+import { loadOptionalCore, loadProfile, saveOptionalCore, saveProfile } from './lib/preferences'
 import { useWakeLock } from './lib/useWakeLock'
+import { CalorieSettings } from './components/CalorieSettings'
 import { OptionalCorePicker } from './components/OptionalCorePicker'
 import { RoutineSection } from './components/RoutineSection'
 import { WorkoutSection } from './components/WorkoutSection'
@@ -56,6 +58,7 @@ export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress)
   const [weekNumber, setWeekNumber] = useState(loadWeek)
   const [timerOpen, setTimerOpen] = useState(false)
+  const [profile, setProfile] = useState(loadProfile)
   const [extraCore, setExtraCore] = useState<string[]>(loadOptionalCore)
 
   useWakeLock()
@@ -99,7 +102,7 @@ export default function App() {
   const suggested = suggestedCore[week.phase]
   const extras = optionalCore
     .filter((ex) => extraCore.includes(ex.name))
-    .map((ex) => ({ ...ex, ...suggested[ex.name], optional: true }))
+    .map((ex) => ({ ...ex, ...suggested[ex.name], met: OPTIONAL_MET[ex.group], optional: true }))
   const core: Session = {
     ...week.core,
     durationLabel: extras.length > 0 ? `5 min + ${extras.length} optional` : week.core.durationLabel,
@@ -112,6 +115,18 @@ export default function App() {
       saveOptionalCore(next)
       return next
     })
+  const kcalOf = (session: Session) => estimateSession(session, week.number, profile).kcal
+  const coreKcal = kcalOf(core)
+  const stretchKcal = kcalOf(stretch)
+  const flowKcal = coreKcal + kcalOf(selected) + stretchKcal
+  const weekKcal =
+    week.workouts.reduce((sum, w) => sum + (completedOn(w.id) ? kcalOf(w) : 0), 0) +
+    dailyCount(progress, dates, 'core') * coreKcal +
+    dailyCount(progress, dates, 'stretch') * stretchKcal
+  const updateProfile = (next: typeof profile) => {
+    setProfile(next)
+    saveProfile(next)
+  }
   const toggleExtra = (name: string) =>
     setExtraCore((cur) => {
       const next = cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name]
@@ -205,6 +220,11 @@ export default function App() {
           ))}
         </section>
 
+        <p className="week-kcal">
+          Estimated calories this week: <strong>≈ {roundKcal(weekKcal)} kcal</strong>
+          <span className="muted"> · completed workouts plus core and stretch days</span>
+        </p>
+
         <section className="card">
           <div className="card__head">
             <h2>Daily routine</h2>
@@ -255,7 +275,7 @@ export default function App() {
           <div className="card__head">
             <h2>Today's session</h2>
             <p className="muted">
-              Core → {selected.nickname} → Stretch + Mobility · about 30 min
+              Core → {selected.nickname} → Stretch + Mobility · about 30 min · ≈ {roundKcal(flowKcal)} kcal
             </p>
           </div>
           {timerOpen ? (
@@ -275,6 +295,7 @@ export default function App() {
         <RoutineSection
           step={1}
           session={core}
+          kcal={roundKcal(coreKcal)}
           done={dailyDone('core')}
           onToggleDone={() => setProgress((p) => toggleDaily(p, today, 'core'))}
         >
@@ -291,6 +312,7 @@ export default function App() {
         <WorkoutSection
           step={2}
           workouts={week.workouts}
+          kcalFor={(id) => roundKcal(kcalOf(workoutById(id)))}
           selectedId={selected.id}
           onSelect={(id) => setPicked((p) => ({ ...p, [week.number]: id }))}
           checksFor={(id) => progress.checks[keyOf(id)] ?? []}
@@ -302,6 +324,7 @@ export default function App() {
         <RoutineSection
           step={3}
           session={week.stretch}
+          kcal={roundKcal(stretchKcal)}
           done={dailyDone('stretch')}
           onToggleDone={() => setProgress((p) => toggleDaily(p, today, 'stretch'))}
         />
@@ -319,6 +342,8 @@ export default function App() {
         >
           📄 View full 12-week program PDF
         </a>
+
+        <CalorieSettings profile={profile} onChange={updateProfile} />
 
         <p className="footer">
           Each day: Core (5 min) → Strength or Cardio (15–20 min) → Stretch (5 min) ≈ 30 min.
