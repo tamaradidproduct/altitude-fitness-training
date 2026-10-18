@@ -1,13 +1,14 @@
 import { useEffect } from 'react'
 
 /**
- * Keeps the screen on while the app is open and visible (Screen Wake Lock API).
- * Browsers drop the lock when the tab is hidden, so it is re-acquired on return.
- * Unsupported browsers (or a denied request) simply let the screen sleep as usual.
+ * Keeps the screen on while `active` is true and the page is visible (Screen
+ * Wake Lock API). Browsers drop the lock when the tab is hidden, so it is
+ * re-acquired on return. When `active` is false, or the browser doesn't support
+ * it (or denies the request), the screen sleeps as usual.
  */
-export function useWakeLock(): void {
+export function useWakeLock(active: boolean): void {
   useEffect(() => {
-    if (!('wakeLock' in navigator)) return
+    if (!active || !('wakeLock' in navigator)) return
     let sentinel: WakeLockSentinel | null = null
     let cancelled = false
 
@@ -40,5 +41,5 @@ export function useWakeLock(): void {
       document.removeEventListener('pointerdown', onVisible)
       void sentinel?.release()
     }
-  }, [])
+  }, [active])
 }

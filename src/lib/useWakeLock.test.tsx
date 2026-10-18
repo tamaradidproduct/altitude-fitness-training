@@ -2,8 +2,8 @@ import { render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useWakeLock } from './useWakeLock'
 
-function Probe() {
-  useWakeLock()
+function Probe({ active = true }: { active?: boolean }) {
+  useWakeLock(active)
   return null
 }
 
@@ -50,6 +50,23 @@ describe('useWakeLock', () => {
     dropLock() // e.g. the tab was hidden
     document.dispatchEvent(new Event('visibilitychange'))
     await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(2))
+  })
+
+  it('does not request a lock while inactive', async () => {
+    const { request } = installWakeLock()
+    render(<Probe active={false} />)
+    await Promise.resolve()
+    expect(request).not.toHaveBeenCalled()
+  })
+
+  it('takes the lock when it becomes active and releases it when it stops', async () => {
+    const { request, release } = installWakeLock()
+    const view = render(<Probe active={false} />)
+    expect(request).not.toHaveBeenCalled()
+    view.rerender(<Probe active />)
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1))
+    view.rerender(<Probe active={false} />)
+    await vi.waitFor(() => expect(release).toHaveBeenCalled())
   })
 
   it('does nothing in browsers without the API', () => {

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
 const STORE = 'strength-to-snow:progress:v1'
@@ -338,5 +338,51 @@ describe('calorie estimates', () => {
     for (let i = 0; i < 500 && !/Session complete/.test(timer.textContent ?? ''); i++)
       fireEvent.click(within(timer).getByRole('button', { name: /Skip/ }))
     expect(within(timer).getByLabelText('Calories burned')).toHaveTextContent(`Total ≈ ${header} kcal`)
+  })
+})
+
+describe('screen wake lock', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    localStorage.setItem('strength-to-snow:week:v1', '1')
+  })
+
+  function installWakeLock() {
+    const release = vi.fn(() => Promise.resolve())
+    const request = vi.fn(() => Promise.resolve({ release, addEventListener: vi.fn() }))
+    Object.defineProperty(navigator, 'wakeLock', { value: { request }, configurable: true })
+    return { request, release }
+  }
+
+  it('is not held while browsing the app, only while a guided session is open', async () => {
+    const { request, release } = installWakeLock()
+    try {
+      render(<App />)
+      await Promise.resolve()
+      expect(request).not.toHaveBeenCalled()
+
+      fireEvent.click(screen.getByText('▶ Start guided session'))
+      await vi.waitFor(() => expect(request).toHaveBeenCalledWith('screen'))
+
+      fireEvent.click(screen.getByText('Close timer'))
+      await vi.waitFor(() => expect(release).toHaveBeenCalled())
+    } finally {
+      Reflect.deleteProperty(navigator, 'wakeLock')
+    }
+  })
+
+  it('lets the screen sleep again once the session is finished', async () => {
+    const { request, release } = installWakeLock()
+    try {
+      render(<App />)
+      fireEvent.click(screen.getByText('▶ Start guided session'))
+      await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1))
+      const timer = screen.getByRole('region', { name: 'Guided timer' })
+      for (let i = 0; i < 500 && !/Session complete/.test(timer.textContent ?? ''); i++)
+        fireEvent.click(within(timer).getByRole('button', { name: /Skip/ }))
+      await vi.waitFor(() => expect(release).toHaveBeenCalled())
+    } finally {
+      Reflect.deleteProperty(navigator, 'wakeLock')
+    }
   })
 })

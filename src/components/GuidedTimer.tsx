@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import type { Session } from '../data/program'
 import { buildFlowPhases, formatClock, type Phase } from '../lib/timer'
+import { useWakeLock } from '../lib/useWakeLock'
 
 interface Props {
   /** Sessions run back to back, in order. */
@@ -78,6 +79,9 @@ export function GuidedTimer({ sessions, onFinish, summary }: Props) {
   useEffect(() => {
     finishRef.current = onFinish
   })
+
+  // Keep the screen on only while a session is in progress (paused counts), not once it's finished.
+  useWakeLock(!done)
 
   const phase = phases[index]
   const next = phases[index + 1]

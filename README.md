@@ -12,7 +12,7 @@ Tracker for the Altitude Attitude + ACECoLab pre-season program (Week 1: Base).
 - 10s rest between timed exercises (skipped where the program has its own rest or recovery)
 - Optional core exercises (`optionalCore` in `src/data/program.ts`): off by default, added with one tap, remembered, and included in the timer. Each phase flags a few as *suggested* (`suggestedCore`) with recommended reps or time, plus an "Add suggested" button
 - Estimated calories for each section, today's session and the week (MET × personalised resting burn; defaults to a 155 lb, 38-year-old woman, editable under "Calorie estimate settings")
-- Keeps the screen on while the app is open (Screen Wake Lock API, where supported)
+- Keeps the screen on only while a guided session is running (Screen Wake Lock API, where supported)
 - Daily core/stretch grid for the current calendar week
 - Progress saved in the browser (localStorage)
 - Link to the original program PDF (`public/pdf/week-N.pdf`)

@@ -20,7 +20,6 @@ import {
 import { GuidedTimer } from './components/GuidedTimer'
 import { estimateSession, roundKcal } from './lib/calories'
 import { loadOptionalCore, loadProfile, saveOptionalCore, saveProfile } from './lib/preferences'
-import { useWakeLock } from './lib/useWakeLock'
 import { CalorieSettings } from './components/CalorieSettings'
 import { OptionalCorePicker } from './components/OptionalCorePicker'
 import { RoutineSection } from './components/RoutineSection'
@@ -60,8 +59,6 @@ export default function App() {
   const [timerOpen, setTimerOpen] = useState(false)
   const [profile, setProfile] = useState(loadProfile)
   const [extraCore, setExtraCore] = useState<string[]>(loadOptionalCore)
-
-  useWakeLock()
 
 
   useEffect(() => {
