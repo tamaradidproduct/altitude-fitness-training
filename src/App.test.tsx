@@ -134,6 +134,15 @@ describe('App', () => {
       expect(screen.queryByText('Optional')).not.toBeInTheDocument()
     })
 
+    it('are grouped as weighted, Pilates, and bodyweight in the picker', () => {
+      render(<App />)
+      open()
+      for (const g of ['Weighted exercises', 'Pilates exercises', 'Bodyweight exercises'])
+        expect(screen.getByRole('region', { name: g })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Add Goblet Squat' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Add Full Teaser' })).toBeInTheDocument()
+    })
+
     it('can be added from the picker, shown as optional, and removed again', () => {
       render(<App />)
       open()

@@ -122,12 +122,51 @@ describe('optional core exercises in the timer', () => {
   })
 
   it('makes rep-based extras tap-to-continue steps, once per side when two-sided', () => {
-    const phases = buildPhases(withExtras(['Dead Bug', 'Russian Twist']))
+    const phases = buildPhases(withExtras(['Dead Bug', 'Weighted Russian Twist']))
     const manual = phases.filter((p) => p.manual)
     expect(manual.map((p) => `${p.label}: ${p.detail}`)).toEqual([
+      // Extras follow the library order (weighted first), not the order they were picked.
+      'Weighted Russian Twist: 20 reps',
       'Dead Bug — Left: 10 reps',
       'Dead Bug — Right: 10 reps',
-      'Russian Twist: 20 reps',
+    ])
+  })
+})
+
+describe('optional core library', () => {
+  const names = optionalCore.map((e) => e.name)
+
+  it('includes the requested weighted, Pilates, and teaser exercises', () => {
+    for (const n of [
+      'Goblet Squat',
+      'Dumbbell Woodchop',
+      'Weighted Russian Twist',
+      'Weighted Plank Drag',
+      'Weighted Glute Bridge',
+      'Single Leg Stretch',
+      'Double Leg Stretch',
+      'Criss-Cross',
+      'Teaser Prep',
+      'Single-Leg Teaser',
+      'Full Teaser',
+    ])
+      expect(names).toContain(n)
+  })
+
+  it('has unique names and a description for every exercise', () => {
+    expect(new Set(names).size).toBe(names.length)
+    expect(optionalCore.every((e) => e.description.length > 20 && e.prescription)).toBe(true)
+  })
+
+  it('does a one-sided Pilates teaser once per side and the full teaser as one step', () => {
+    const phases = buildPhases({
+      ...week1.core,
+      exercises: optionalCore.filter((e) => ['Single-Leg Teaser', 'Full Teaser'].includes(e.name)),
+    })
+    expect(phases.filter((p) => p.manual).map((p) => `${p.label}: ${p.detail}`)).toEqual([
+      'Single-Leg Teaser — Left: 5 reps',
+      'Single-Leg Teaser — Right: 5 reps',
+      'Full Teaser: 5 reps',
     ])
   })
 })

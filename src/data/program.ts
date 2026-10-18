@@ -606,12 +606,120 @@ export const program = {
   weeks: [week1, week2],
 }
 
+export type OptionalGroup = 'Weighted' | 'Pilates' | 'Bodyweight'
+
+export interface OptionalExercise extends Exercise {
+  group: OptionalGroup
+}
+
 /**
  * Optional extras the user can add to the daily Core routine. Not part of the
  * original program, and never included unless selected. Edit freely.
+ * Alternating moves (Pilates stretches, scissors, criss-cross) are one set of
+ * total reps; moves done on one side at a time are marked `perSide`.
  */
-export const optionalCore: Exercise[] = [
+export const optionalCore: OptionalExercise[] = [
+  // Weighted: one dumbbell or light weight.
   {
+    group: 'Weighted',
+    name: 'Goblet Squat',
+    prescription: '12 reps',
+    description:
+      'Hold one dumbbell upright against your chest with both hands. Stand with your feet shoulder-width apart, sit your hips back and down while keeping your chest tall, then press through your feet to stand. Keep your ribs stacked over your hips so your core stays braced.',
+  },
+  {
+    group: 'Weighted',
+    name: 'Dumbbell Woodchop',
+    prescription: '10 each side',
+    perSide: true,
+    description:
+      'Hold one dumbbell with both hands high beside one shoulder. Rotate through your torso and pivot your back foot as you pull the weight diagonally down and across your body to the opposite hip. Return with control. Finish all reps on one side before switching.',
+  },
+  {
+    group: 'Weighted',
+    name: 'Weighted Russian Twist',
+    prescription: '20 reps',
+    description:
+      'Sit with your knees bent and heels on the floor, leaning back slightly with a long spine. Hold a dumbbell at your chest and rotate your torso from side to side, moving the weight with your ribs rather than just your arms. Each side counts as one rep. Skip this one if it bothers your lower back.',
+  },
+  {
+    group: 'Weighted',
+    name: 'Weighted Plank Drag',
+    prescription: '6 each side',
+    perSide: true,
+    description:
+      'Start in a high plank with a dumbbell on the floor just outside one hand and your feet slightly wider than hip-width. Reach the opposite hand across, drag the weight under your body to the other side, and place it down. Keep your hips level and avoid rocking. One side means dragging with that hand.',
+  },
+  {
+    group: 'Weighted',
+    name: 'Weighted Glute Bridge',
+    prescription: '12 reps',
+    description:
+      'Lie on your back with your knees bent and feet flat. Rest a dumbbell across your hips and hold it steady with both hands. Press through your feet and squeeze your glutes to lift your hips until your shoulders, hips, and knees form a straight line. Lower with control without arching your lower back.',
+  },
+
+  // Pilates: the classic abdominal series of five, plus teaser variations.
+  {
+    group: 'Pilates',
+    name: 'Single Leg Stretch',
+    prescription: '10 alternating',
+    description:
+      'Lie on your back and curl your head and shoulders off the mat, with your knees pulled toward your chest. Place your right hand on your right ankle and your left hand on your knee, then extend your left leg long. Switch legs in a smooth rhythm, keeping your lower back pressed into the mat. Each switch counts as one rep.',
+  },
+  {
+    group: 'Pilates',
+    name: 'Double Leg Stretch',
+    prescription: '8 reps',
+    description:
+      'Lie on your back with your head and shoulders curled up and your knees pulled in, hands on your shins. Reach both arms overhead while extending both legs forward at an angle you can control. Circle your arms around and draw your knees back in. Keep your lower back pressed into the mat.',
+  },
+  {
+    group: 'Pilates',
+    name: 'Scissors (Single Straight Leg Stretch)',
+    prescription: '10 alternating',
+    description:
+      'Lie on your back with your head and shoulders curled up and both legs extended toward the ceiling. Lower one leg while holding the other with both hands, pulse twice toward your chest, then switch legs. Keep your hips still and lower only as far as your lower back stays on the mat. Each switch counts as one rep.',
+  },
+  {
+    group: 'Pilates',
+    name: 'Double Straight Leg Stretch',
+    prescription: '8 reps',
+    description:
+      'Lie on your back with your head and shoulders curled up, hands behind your head, and both legs extended toward the ceiling. Lower your legs to a height where your lower back stays on the mat, then lift them back up as you keep your upper body curled. Move slowly and keep your elbows wide.',
+  },
+  {
+    group: 'Pilates',
+    name: 'Criss-Cross',
+    prescription: '10 alternating',
+    description:
+      'Lie on your back with your hands behind your head and your head and shoulders curled up. Draw one knee toward your chest and extend the other leg. Rotate your ribcage to bring the opposite elbow toward the bent knee, then switch sides. Turn from your ribs, not your elbows. Each switch counts as one rep.',
+  },
+  {
+    group: 'Pilates',
+    name: 'Teaser Prep',
+    prescription: '6 reps',
+    description:
+      'Lie on your back with your knees bent and one hand behind each thigh. Nod your chin and roll up through your spine until you are balanced on your sit bones, then roll back down one vertebra at a time. Keep your feet light and move with control.',
+  },
+  {
+    group: 'Pilates',
+    name: 'Single-Leg Teaser',
+    prescription: '5 each side',
+    perSide: true,
+    description:
+      'Lie on your back with one knee bent and the other leg extended toward the ceiling. Roll up to a V-sit, reaching your arms toward your raised leg. Roll back down with control. Complete all reps on one side before switching.',
+  },
+  {
+    group: 'Pilates',
+    name: 'Full Teaser',
+    prescription: '5 reps',
+    description:
+      'Lie on your back with your legs extended and your arms overhead. Roll up and lift your legs at the same time to balance in a V shape on your sit bones, arms reaching toward your toes. Roll back down slowly. Bend your knees to make it easier.',
+  },
+
+  // Bodyweight
+  {
+    group: 'Bodyweight',
     name: 'Dead Bug',
     prescription: '10 each side',
     perSide: true,
@@ -619,6 +727,7 @@ export const optionalCore: Exercise[] = [
       'Lie on your back with your arms reaching toward the ceiling and your hips and knees bent to 90 degrees. Press your lower back gently into the floor, then slowly extend the opposite arm and leg toward the floor. Return with control and repeat on the other side.',
   },
   {
+    group: 'Bodyweight',
     name: 'Side Plank',
     prescription: '30 sec each side',
     seconds: 30,
@@ -627,6 +736,7 @@ export const optionalCore: Exercise[] = [
       'Lie on your side with your elbow directly under your shoulder and your legs stacked. Lift your hips so your body forms a straight line from head to feet. Keep your hips stacked and breathe steadily. Drop to your knees if you need to.',
   },
   {
+    group: 'Bodyweight',
     name: 'Bicycle Crunch',
     prescription: '30 sec',
     seconds: 30,
@@ -634,6 +744,7 @@ export const optionalCore: Exercise[] = [
       'Lie on your back with your hands lightly behind your head. Bring one knee toward your chest while rotating the opposite elbow toward it, then switch sides in a slow, pedaling motion. Keep your lower back pressed down and avoid pulling on your neck.',
   },
   {
+    group: 'Bodyweight',
     name: 'Hollow Body Hold',
     prescription: '20 sec hold',
     seconds: 20,
@@ -641,12 +752,7 @@ export const optionalCore: Exercise[] = [
       'Lie on your back and press your lower back into the floor. Lift your shoulders and legs a few inches off the ground with your arms reaching overhead. Hold a long, shallow "banana" shape. Bend your knees or raise your legs higher to make it easier.',
   },
   {
-    name: 'Russian Twist',
-    prescription: '20 reps',
-    description:
-      'Sit with your knees bent and your heels on the floor, leaning back slightly with a long spine. Clasp your hands in front of your chest and rotate your torso from side to side, tapping the floor beside you if you like. Each side counts as one rep.',
-  },
-  {
+    group: 'Bodyweight',
     name: 'Slow Mountain Climber',
     prescription: '30 sec',
     seconds: 30,
