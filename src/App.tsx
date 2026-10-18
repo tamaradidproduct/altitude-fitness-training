@@ -118,7 +118,9 @@ export default function App() {
   const kcalOf = (session: Session) => estimateSession(session, week.number, profile).kcal
   const coreKcal = kcalOf(core)
   const stretchKcal = kcalOf(stretch)
-  const flowKcal = coreKcal + kcalOf(selected) + stretchKcal
+  const selectedKcal = roundKcal(kcalOf(selected))
+  // Sum of the rounded parts so the session total matches the breakdown shown when it finishes.
+  const flowKcal = roundKcal(coreKcal) + selectedKcal + roundKcal(stretchKcal)
   const weekKcal =
     week.workouts.reduce((sum, w) => sum + (completedOn(w.id) ? kcalOf(w) : 0), 0) +
     dailyCount(progress, dates, 'core') * coreKcal +
@@ -275,7 +277,7 @@ export default function App() {
           <div className="card__head">
             <h2>Today's session</h2>
             <p className="muted">
-              Core → {selected.nickname} → Stretch + Mobility · about 30 min · ≈ {roundKcal(flowKcal)} kcal
+              Core → {selected.nickname} → Stretch + Mobility · about 30 min · ≈ {flowKcal} kcal
             </p>
           </div>
           {timerOpen ? (
@@ -286,7 +288,7 @@ export default function App() {
                 onFinish={finishFlow}
                 summary={[
                   { label: 'Core', kcal: roundKcal(coreKcal) },
-                  { label: selected.nickname ?? selected.title, kcal: roundKcal(kcalOf(selected)) },
+                  { label: selected.nickname ?? selected.title, kcal: selectedKcal },
                   { label: 'Stretch + Mobility', kcal: roundKcal(stretchKcal) },
                 ]}
               />

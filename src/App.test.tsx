@@ -329,4 +329,14 @@ describe('calorie estimates', () => {
     // Finishing also completes the workout, which now reports its own calories.
     expect(screen.getByText(/Workout complete/)).toBeInTheDocument()
   })
+
+  it('keeps the session total consistent with the finish breakdown', () => {
+    render(<App />)
+    const header = Number(/≈ (\d+) kcal/.exec(screen.getByText(/about 30 min/).textContent!)![1])
+    fireEvent.click(screen.getByText('▶ Start guided session'))
+    const timer = screen.getByRole('region', { name: 'Guided timer' })
+    for (let i = 0; i < 500 && !/Session complete/.test(timer.textContent ?? ''); i++)
+      fireEvent.click(within(timer).getByRole('button', { name: /Skip/ }))
+    expect(within(timer).getByLabelText('Calories burned')).toHaveTextContent(`Total ≈ ${header} kcal`)
+  })
 })
