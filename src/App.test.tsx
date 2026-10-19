@@ -131,6 +131,15 @@ describe('App', () => {
       expect(screen.getByRole('group', { name: g })).toBeInTheDocument()
   })
 
+  it('links Week 3\'s own PDF', () => {
+    render(<App />)
+    pickWeek(3)
+    expect(screen.getByRole('link', { name: /View original Week 3 PDF/ })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/pdf\/week-3\.pdf$/),
+    )
+  })
+
   it('shows later weeks, their phase, and only the full-program PDF where there is no weekly PDF', () => {
     render(<App />)
     pickWeek(6)
