@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildPhases, totalSeconds } from '../lib/timer'
 import { optionalCore, program, suggestedCore } from './program'
 import { parsePrescription } from './laterWeeks'
+import { WEEK_3_DESCRIPTIONS } from './week3Descriptions'
 
 const allSessions = program.weeks.flatMap((w) => [w.core, w.stretch, ...w.workouts])
 
@@ -47,7 +48,7 @@ describe('12-week program', () => {
     expect(w(3).core.exercises.map((e) => e.name)).toEqual([
       'Forearm Plank',
       'Glute Bridge with Block/Ball',
-      'Super Woman Hold',
+      'Super Woman',
       'Alternating Crunch',
     ])
     expect(w(4).core.exercises[0]).toMatchObject({ name: 'Forearm Plank', seconds: 90 })
@@ -99,6 +100,39 @@ describe('12-week program', () => {
     const week7 = buildPhases(program.weeks[6].core).map((p) => p.label)
     expect(week7).toContain('Single-Leg Glute Bridge — Left')
     expect(week7).toContain('Single-Leg Glute Bridge — Right')
+  })
+})
+
+describe('Week 3 (from its own PDF)', () => {
+  const week3 = program.weeks[2]
+  const sessions = [week3.core, week3.stretch, ...week3.workouts]
+
+  it('has exactly the exercises, in order, that the Week 3 PDF lists for each session', () => {
+    for (const session of sessions) {
+      const fromPdf = Object.keys(WEEK_3_DESCRIPTIONS)
+        .filter((k) => k.startsWith(`${session.id}|`))
+        .map((k) => k.slice(session.id.length + 1))
+      expect(session.exercises.map((e) => e.name)).toEqual(fromPdf)
+    }
+  })
+
+  it('uses the PDF\'s descriptions word for word, including each Monster Walk', () => {
+    for (const session of sessions)
+      for (const ex of session.exercises) expect(ex.description).toBe(WEEK_3_DESCRIPTIONS[`${session.id}|${ex.name}`])
+    expect(week3.workouts[0].exercises[4].description).toContain('forward and outward')
+    expect(week3.workouts[2].exercises[3].description).toContain('collapse inward')
+  })
+
+  it('links the Week 3 PDF and lists only a resistance band for Strength B, as the PDF does', () => {
+    expect(week3.pdf).toBe('pdf/week-3.pdf')
+    expect(week3.workouts[1].equipment).toEqual(['Resistance Band'])
+    expect(program.weeks[3].pdf).toBeUndefined()
+  })
+
+  it('reuses its wording in later weeks for the same exercise', () => {
+    const arnold = program.weeks[3].workouts[2].exercises[4]
+    expect(arnold.name).toBe('Arnold Press')
+    expect(arnold.description).toBe(WEEK_3_DESCRIPTIONS['strength-c|Arnold Press'])
   })
 })
 

@@ -1,5 +1,6 @@
 import type { Exercise, Session, Week, WeekPhase } from './program'
 import { describe } from './descriptions'
+import { WEEK_3_DESCRIPTIONS } from './week3Descriptions'
 
 /**
  * Weeks 3–12, transcribed from the program's matrix PDF ("Workouts.pdf").
@@ -13,6 +14,12 @@ import { describe } from './descriptions'
  * - "DB Press" in Strength A is treated as a chest press, and "Dumbbell" is added to
  *   "RDL" and "Row" where the PDF leaves it out.
  */
+
+/** Weeks that have their own PDF, bundled under public/pdf. */
+const WEEKLY_PDFS: Record<number, string> = { 3: 'pdf/week-3.pdf' }
+
+/** Word-for-word descriptions from weekly PDFs, keyed by `sessionId|name`. Later weeks reuse them. */
+const WEEKLY_DESCRIPTIONS: Record<number, Record<string, string>> = { 3: WEEK_3_DESCRIPTIONS }
 
 const phaseOf = (n: number): WeekPhase => (n <= 4 ? 'Base' : n <= 8 ? 'Peak' : 'Send')
 
@@ -37,7 +44,7 @@ const SPECS: Record<number, Spec> = {
     core: [
       'Forearm Plank | 60 sec',
       'Glute Bridge with Block/Ball | 30 sec',
-      'Super Woman Hold | 15 sec hold ×2',
+      'Super Woman | 15 sec hold ×2',
       'Alternating Crunch | 15 each side, alternating',
     ],
     stretch: [
@@ -68,7 +75,7 @@ const SPECS: Record<number, Spec> = {
       'Monster Walk | 12 each side',
       'Arnold Press | 10 reps',
     ],
-    cardio1: ['Jog in Place', 'Jumping Jacks', 'High Knees', 'Lateral Shuffle', 'Speed Skater Step'],
+    cardio1: ['Jog in Place', 'Jumping Jacks', 'High Knees', 'Lateral Shuffle', 'Speed Skater — Step'],
     cardio2: [
       'Quick Squats',
       'Alternating Lunge + Knee Drive',
@@ -81,7 +88,7 @@ const SPECS: Record<number, Spec> = {
     core: [
       'Forearm Plank | 90 sec',
       'Glute Bridge March | 15 each side, alternating',
-      'Super Woman Hold | 30 sec hold',
+      'Super Woman | 30 sec hold',
       'Bicycle Crunch | 15 each side, alternating',
     ],
     stretch: [
@@ -125,7 +132,7 @@ const SPECS: Record<number, Spec> = {
     core: [
       'Straight-Arm Plank | 30 sec',
       'Glute Bridge on Box | 30 sec',
-      'Super Woman Hold | 30 sec hold ×2',
+      'Super Woman | 30 sec hold ×2',
       'Bicycle Crunch | 15 each side, alternating',
     ],
     stretch: [
@@ -487,9 +494,16 @@ export function parsePrescription(rx: string): Pick<Exercise, 'seconds' | 'perSi
   return {}
 }
 
-function exerciseOf(cell: string, known: Record<string, string>, fallbackRx = ''): Exercise {
+function exerciseOf(
+  cell: string,
+  known: Record<string, string>,
+  fallbackRx = '',
+  fromPdf: Record<string, string> = {},
+  sessionId = '',
+): Exercise {
   const [name, rx = fallbackRx] = cell.split(' | ')
-  return { name, prescription: rx, description: describe(name, known), ...parsePrescription(rx) }
+  const description = fromPdf[`${sessionId}|${name}`] ?? describe(name, known)
+  return { name, prescription: rx, description, ...parsePrescription(rx) }
 }
 
 /** Equipment lists are inferred from the exercises each week uses. */
@@ -498,7 +512,7 @@ function strengthEquipment(letter: 'A' | 'B' | 'C', week: number): string[] {
     if (week === 3) return ['Resistance Band']
     return week >= 7 ? ['Dumbbells or kettlebell', 'Bench or box'] : ['Dumbbells or kettlebell']
   }
-  if (letter === 'B') return week === 3 ? ['Resistance Band', 'Box'] : ['Dumbbells', 'Box', 'Resistance Band']
+  if (letter === 'B') return week === 3 ? ['Resistance Band'] : ['Dumbbells', 'Box', 'Resistance Band']
   return week === 3 ? ['Resistance Band', 'Dumbbells'] : ['Resistance Band', 'Dumbbells', 'Bench or box']
 }
 
@@ -517,25 +531,28 @@ export function buildLaterWeeks(known: Week[]): Week[] {
     const phase = phaseOf(number)
     const interval = INTERVALS[phase]
     const intervalRx = `${interval.work}s work / ${interval.rest}s recovery`
-    const exercises = (cells: string[], rx = '') => cells.map((cell) => exerciseOf(cell, descriptions, rx))
+    const fromPdf = WEEKLY_DESCRIPTIONS[number]
+    const exercises = (cells: string[], sessionId: string, rx = '') =>
+      cells.map((cell) => exerciseOf(cell, descriptions, rx, fromPdf, sessionId))
 
     const strength = (shell: Session, cells: string[], letter: 'A' | 'B' | 'C'): Session => ({
       ...shell,
       equipment: strengthEquipment(letter, number),
-      exercises: exercises(cells),
+      exercises: exercises(cells, shell.id),
     })
     const cardio = (shell: Session, cells: string[]): Session => ({
       ...shell,
       interval,
-      exercises: exercises(cells, intervalRx),
+      exercises: exercises(cells, shell.id, intervalRx),
     })
 
-    return {
+    const week: Week = {
       number,
+      ...(WEEKLY_PDFS[number] ? { pdf: WEEKLY_PDFS[number] } : {}),
       phase,
       ...(phase === 'Base' ? { theme: 'Build the Foundation' } : {}),
-      core: { ...week1.core, exercises: exercises(spec.core) },
-      stretch: { ...week1.stretch, exercises: exercises(spec.stretch) },
+      core: { ...week1.core, exercises: exercises(spec.core, 'core') },
+      stretch: { ...week1.stretch, exercises: exercises(spec.stretch, 'stretch') },
       workouts: [
         strength(a, spec.strengthA, 'A'),
         strength(b, spec.strengthB, 'B'),
@@ -544,5 +561,9 @@ export function buildLaterWeeks(known: Week[]): Week[] {
         cardio(cardio2, spec.cardio2),
       ],
     }
+    // Later weeks reuse this week's wording for the same exercise names.
+    for (const session of [week.core, week.stretch, ...week.workouts])
+      for (const ex of session.exercises) descriptions[ex.name] ??= ex.description
+    return week
   })
 }
